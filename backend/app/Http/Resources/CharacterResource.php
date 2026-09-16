@@ -38,6 +38,21 @@ class CharacterResource extends JsonResource
                     'skill_level' => $profession->skill_level,
                 ]),
             ),
+            'equipment' => $this->whenLoaded(
+                'items',
+                fn () => $this->items->map(fn ($characterItem) => [
+                    'slot' => $characterItem->slot->value,
+                    'item' => [
+                        'id' => $characterItem->item->id,
+                        'name' => $characterItem->item->name,
+                        'icon' => $characterItem->item->icon,
+                        'quality' => $characterItem->item->quality->value,
+                        'quality_label' => $characterItem->item->quality->label(),
+                        'quality_color' => $characterItem->item->quality->color(),
+                        'item_level' => $characterItem->item->item_level,
+                    ],
+                ]),
+            ),
         ];
     }
 }

@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\CharacterController;
+use App\Http\Controllers\CharacterEquipmentController;
+use App\Http\Controllers\ItemController;
 use App\Http\Controllers\Settings\AccountController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +21,11 @@ Route::middleware('auth')->group(function () {
     Route::get('characters/{character}/edit', [CharacterController::class, 'edit'])->name('characters.edit');
     Route::put('characters/{character}', [CharacterController::class, 'update'])->name('characters.update');
     Route::delete('characters/{character}', [CharacterController::class, 'destroy'])->name('characters.destroy');
+
+    Route::put('characters/{character}/equipment/{slot}', [CharacterEquipmentController::class, 'update'])->name('characters.equipment.update');
+    Route::delete('characters/{character}/equipment/{slot}', [CharacterEquipmentController::class, 'destroy'])->name('characters.equipment.destroy');
+
+    Route::get('items/search', [ItemController::class, 'search'])->name('items.search');
 
     Route::get('settings/account', [AccountController::class, 'edit'])->name('account.edit');
     Route::delete('account', [AccountController::class, 'destroy'])->name('account.destroy');
