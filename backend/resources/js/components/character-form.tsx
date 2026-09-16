@@ -12,6 +12,8 @@ type CharacterFormData = {
     faction: string;
     class: string;
     spec: string;
+    race: string;
+    level: string;
     professions: ProfessionRow[];
 };
 
@@ -37,6 +39,8 @@ export default function CharacterForm({
             faction: character?.faction ?? options.factions[0]?.value ?? '',
             class: character?.class ?? options.classes[0]?.value ?? '',
             spec: character?.spec ?? '',
+            race: character?.race ?? '',
+            level: character?.level?.toString() ?? '',
             professions: (character?.professions ?? []).map((profession) => ({
                 name: profession.name,
                 skill_level: profession.skill_level?.toString() ?? '',
@@ -52,6 +56,8 @@ export default function CharacterForm({
 
         transform((formData) => ({
             ...formData,
+            race: formData.race === '' ? null : formData.race,
+            level: formData.level === '' ? null : Number(formData.level),
             professions: formData.professions
                 .filter((row) => row.name !== '')
                 .map((row) => ({
@@ -66,6 +72,20 @@ export default function CharacterForm({
             post(action);
         }
     };
+
+    const racesForFaction = options.races.filter((race) => race.faction === data.faction);
+
+    function updateFaction(faction: string) {
+        const raceStillValid = options.races.some(
+            (race) => race.value === data.race && race.faction === faction,
+        );
+
+        setData({
+            ...data,
+            faction,
+            race: raceStillValid ? data.race : '',
+        });
+    }
 
     function addProfession() {
         setData('professions', [...data.professions, { name: '', skill_level: '' }]);
@@ -105,7 +125,7 @@ export default function CharacterForm({
                     <select
                         id="faction"
                         value={data.faction}
-                        onChange={(e) => setData('faction', e.target.value)}
+                        onChange={(e) => updateFaction(e.target.value)}
                         className={selectClassName}
                     >
                         {options.factions.map((faction) => (
@@ -144,6 +164,39 @@ export default function CharacterForm({
                         className="mt-1"
                     />
                     <InputError message={errors.spec} />
+                </div>
+
+                <div>
+                    <InputLabel htmlFor="race">Raça</InputLabel>
+                    <select
+                        id="race"
+                        value={data.race}
+                        onChange={(e) => setData('race', e.target.value)}
+                        className={selectClassName}
+                    >
+                        <option value="">Não informar</option>
+                        {racesForFaction.map((race) => (
+                            <option key={race.value} value={race.value}>
+                                {race.label}
+                            </option>
+                        ))}
+                    </select>
+                    <InputError message={errors.race} />
+                </div>
+
+                <div>
+                    <InputLabel htmlFor="level">Nível</InputLabel>
+                    <TextInput
+                        id="level"
+                        type="number"
+                        min={1}
+                        max={80}
+                        placeholder="1-80"
+                        value={data.level}
+                        onChange={(e) => setData('level', e.target.value)}
+                        className="mt-1"
+                    />
+                    <InputError message={errors.level} />
                 </div>
             </div>
 

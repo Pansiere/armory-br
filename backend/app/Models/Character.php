@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\CharacterClass;
 use App\Enums\Faction;
+use App\Enums\Race;
 use Database\Factories\CharacterFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -26,7 +27,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'faction', 'class', 'spec', 'position', 'is_public'])]
+#[Fillable(['name', 'faction', 'class', 'spec', 'race', 'level', 'position', 'is_public'])]
 class Character extends Model
 {
     /** @use HasFactory<CharacterFactory> */
@@ -58,6 +59,7 @@ class Character extends Model
         return [
             'faction' => Faction::class,
             'class' => CharacterClass::class,
+            'race' => Race::class,
             'level' => 'integer',
             'position' => 'integer',
             'is_public' => 'boolean',

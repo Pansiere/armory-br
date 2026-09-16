@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\CharacterClass;
 use App\Enums\Faction;
 use App\Enums\Profession;
+use App\Enums\Race;
 use App\Http\Resources\CharacterResource;
 use App\Models\Character;
 use Illuminate\Http\RedirectResponse;
@@ -51,6 +52,8 @@ class CharacterController extends Controller
                 'faction' => $validated['faction'],
                 'class' => $validated['class'],
                 'spec' => $validated['spec'] ?? null,
+                'race' => $validated['race'] ?? null,
+                'level' => $validated['level'] ?? null,
                 'position' => $nextPosition,
             ]);
 
@@ -82,6 +85,8 @@ class CharacterController extends Controller
                 'faction' => $validated['faction'],
                 'class' => $validated['class'],
                 'spec' => $validated['spec'] ?? null,
+                'race' => $validated['race'] ?? null,
+                'level' => $validated['level'] ?? null,
             ]);
 
             $this->syncProfessions($character, $validated['professions'] ?? []);
@@ -153,6 +158,11 @@ class CharacterController extends Controller
                 'label' => $profession->label(),
                 'isPrimary' => $profession->isPrimary(),
             ]),
+            'races' => collect(Race::cases())->map(fn (Race $race) => [
+                'value' => $race->value,
+                'label' => $race->label(),
+                'faction' => $race->faction()->value,
+            ]),
         ];
     }
 
@@ -166,6 +176,15 @@ class CharacterController extends Controller
             'faction' => ['required', new Enum(Faction::class)],
             'class' => ['required', new Enum(CharacterClass::class)],
             'spec' => ['nullable', 'string', 'max:100'],
+            'race' => ['nullable', new Enum(Race::class), function (string $attribute, mixed $value, \Closure $fail) use ($request) {
+                $race = Race::tryFrom($value ?? '');
+                $faction = Faction::tryFrom($request->input('faction', ''));
+
+                if ($race && $faction && $race->faction() !== $faction) {
+                    $fail('Essa raça não é dessa facção.');
+                }
+            }],
+            'level' => ['nullable', 'integer', 'min:1', 'max:80'],
             'professions' => ['nullable', 'array', function (string $attribute, mixed $value, \Closure $fail) {
                 $primaryCount = collect($value)
                     ->filter(fn (array $item) => Profession::tryFrom($item['name'] ?? '')?->isPrimary() === true)

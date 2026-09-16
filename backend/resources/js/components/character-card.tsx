@@ -20,7 +20,14 @@ export default function CharacterCard({ character }: { character: Character }) {
             </span>
 
             <div className="min-w-0">
-                <p className="truncate font-medium">{character.name}</p>
+                <p className="truncate font-medium">
+                    {character.name}
+                    {character.level ? (
+                        <span className="text-ink/60"> ({character.level})</span>
+                    ) : (
+                        ''
+                    )}
+                </p>
                 <p
                     className={cn(
                         'truncate text-sm font-medium',
