@@ -8,4 +8,26 @@
         'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
+    --font-heading: 'Cinzel', ui-serif, Georgia, serif;
+
+    /* Estética de pergaminho / taverna (seção 9.3 do spec). */
+    --color-tavern-950: #15100c;
+    --color-tavern-900: #211a13;
+    --color-tavern-800: #3a2e20;
+    --color-tavern-700: #574632;
+
+    --color-parchment-100: #f8f1de;
+    --color-parchment-200: #ece0c2;
+    --color-parchment-300: #d9c8a0;
+
+    --color-ink: #271f15;
+
+    --color-alliance: #2b5797;
+    --color-alliance-dim: #1c3a66;
+    --color-horde: #8c1f28;
+    --color-horde-dim: #5e141b;
+}
+
+body {
+    @apply bg-tavern-950 text-parchment-100;
 }
