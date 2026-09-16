@@ -1,0 +1,197 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Enums\CharacterClass;
+use App\Enums\Faction;
+use App\Enums\Profession;
+use App\Http\Resources\CharacterResource;
+use App\Models\Character;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rules\Enum;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class CharacterController extends Controller
+{
+    public function index(Request $request): Response
+    {
+        $characters = $request->user()
+            ->characters()
+            ->with('professions')
+            ->orderBy('position')
+            ->get()
+            ->groupBy(fn (Character $character) => $character->faction->value);
+
+        return Inertia::render('dashboard', [
+            'alliance' => CharacterResource::collection($characters->get(Faction::Alliance->value, collect())),
+            'horde' => CharacterResource::collection($characters->get(Faction::Horde->value, collect())),
+        ]);
+    }
+
+    public function create(): Response
+    {
+        return Inertia::render('characters/create', $this->formOptions());
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $this->validateCharacter($request);
+
+        DB::transaction(function () use ($validated, $request) {
+            $nextPosition = $request->user()->characters()
+                ->where('faction', $validated['faction'])
+                ->max('position') + 1;
+
+            $character = $request->user()->characters()->create([
+                'name' => $validated['name'],
+                'faction' => $validated['faction'],
+                'class' => $validated['class'],
+                'spec' => $validated['spec'] ?? null,
+                'position' => $nextPosition,
+            ]);
+
+            $this->syncProfessions($character, $validated['professions'] ?? []);
+        });
+
+        return redirect()->route('dashboard');
+    }
+
+    public function edit(Character $character): Response
+    {
+        Gate::authorize('update', $character);
+
+        return Inertia::render('characters/edit', [
+            ...$this->formOptions(),
+            'character' => new CharacterResource($character->load('professions')),
+        ]);
+    }
+
+    public function update(Request $request, Character $character): RedirectResponse
+    {
+        Gate::authorize('update', $character);
+
+        $validated = $this->validateCharacter($request);
+
+        DB::transaction(function () use ($character, $validated) {
+            $character->update([
+                'name' => $validated['name'],
+                'faction' => $validated['faction'],
+                'class' => $validated['class'],
+                'spec' => $validated['spec'] ?? null,
+            ]);
+
+            $this->syncProfessions($character, $validated['professions'] ?? []);
+        });
+
+        return redirect()->route('dashboard');
+    }
+
+    public function destroy(Character $character): RedirectResponse
+    {
+        Gate::authorize('delete', $character);
+
+        $character->delete();
+
+        return redirect()->route('dashboard');
+    }
+
+    /**
+     * Persiste a nova ordem/facção de todos os personagens após um
+     * arrastar-e-soltar. Autosave — sem botão "salvar".
+     */
+    public function reorder(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'alliance' => ['present', 'array'],
+            'alliance.*' => ['integer', 'distinct'],
+            'horde' => ['present', 'array'],
+            'horde.*' => ['integer', 'distinct'],
+        ]);
+
+        $orderedIds = [...$validated['alliance'], ...$validated['horde']];
+
+        $characters = $request->user()->characters()->whereKey($orderedIds)->get()->keyBy('id');
+
+        abort_unless($characters->count() === count($orderedIds), 403);
+
+        DB::transaction(function () use ($validated, $characters) {
+            foreach (['alliance' => Faction::Alliance, 'horde' => Faction::Horde] as $key => $faction) {
+                foreach ($validated[$key] as $position => $id) {
+                    $characters[$id]->update([
+                        'faction' => $faction,
+                        'position' => $position,
+                    ]);
+                }
+            }
+        });
+
+        return back();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function formOptions(): array
+    {
+        return [
+            'factions' => collect(Faction::cases())->map(fn (Faction $faction) => [
+                'value' => $faction->value,
+                'label' => $faction->label(),
+            ]),
+            'classes' => collect(CharacterClass::cases())->map(fn (CharacterClass $class) => [
+                'value' => $class->value,
+                'label' => $class->label(),
+                'color' => $class->color(),
+                'needsTextOutline' => $class->needsTextOutline(),
+            ]),
+            'professions' => collect(Profession::cases())->map(fn (Profession $profession) => [
+                'value' => $profession->value,
+                'label' => $profession->label(),
+                'isPrimary' => $profession->isPrimary(),
+            ]),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validateCharacter(Request $request): array
+    {
+        return $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'faction' => ['required', new Enum(Faction::class)],
+            'class' => ['required', new Enum(CharacterClass::class)],
+            'spec' => ['nullable', 'string', 'max:100'],
+            'professions' => ['nullable', 'array', function (string $attribute, mixed $value, \Closure $fail) {
+                $primaryCount = collect($value)
+                    ->filter(fn (array $item) => Profession::tryFrom($item['name'] ?? '')?->isPrimary() === true)
+                    ->count();
+
+                if ($primaryCount > Profession::MAX_PRIMARY_PER_CHARACTER) {
+                    $fail('Máximo de '.Profession::MAX_PRIMARY_PER_CHARACTER.' profissões primárias por personagem.');
+                }
+            }],
+            'professions.*.name' => ['required', new Enum(Profession::class), 'distinct'],
+            'professions.*.skill_level' => ['nullable', 'integer', 'min:0', 'max:'.Profession::MAX_SKILL_LEVEL],
+        ]);
+    }
+
+    /**
+     * @param  array<int, array{name: string, skill_level?: int|null}>  $professions
+     */
+    private function syncProfessions(Character $character, array $professions): void
+    {
+        $character->professions()->delete();
+
+        foreach ($professions as $profession) {
+            $character->professions()->create([
+                'name' => $profession['name'],
+                'skill_level' => $profession['skill_level'] ?? null,
+            ]);
+        }
+    }
+}
