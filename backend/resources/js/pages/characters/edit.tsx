@@ -1,4 +1,5 @@
 import CharacterForm from '@/components/character-form';
+import EquipmentDoll from '@/components/equipment-doll';
 import AppLayout from '@/layouts/app-layout';
 import type { Character, CharacterFormOptions } from '@/types/character';
 import { Head, router } from '@inertiajs/react';
@@ -37,6 +38,10 @@ export default function Edit({
                 method="put"
                 submitLabel="Salvar alterações"
             />
+
+            <div className="mt-10">
+                <EquipmentDoll character={character} slots={options.equipmentSlots} />
+            </div>
         </AppLayout>
     );
 }

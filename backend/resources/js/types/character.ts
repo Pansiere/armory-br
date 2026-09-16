@@ -31,6 +31,27 @@ export type CharacterProfession = {
     skill_level: number | null;
 };
 
+export type EquipmentSlotOption = {
+    value: string;
+    label: string;
+    column: 'left' | 'right' | 'bottom';
+};
+
+export type ItemSummary = {
+    id: number;
+    name: string;
+    icon: string | null;
+    quality: string;
+    quality_label: string;
+    quality_color: string;
+    item_level: number;
+};
+
+export type CharacterEquipment = {
+    slot: string;
+    item: ItemSummary;
+};
+
 export type Character = {
     id: number;
     name: string;
@@ -45,6 +66,8 @@ export type Character = {
     level: number | null;
     position: number;
     professions: CharacterProfession[];
+    /** Só vem preenchido quando a página carrega a relação (tela de edição). */
+    equipment?: CharacterEquipment[];
 };
 
 export type CharacterFormOptions = {
@@ -52,4 +75,5 @@ export type CharacterFormOptions = {
     classes: CharacterClassOption[];
     professions: ProfessionOption[];
     races: RaceOption[];
+    equipmentSlots: EquipmentSlotOption[];
 };

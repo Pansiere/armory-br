@@ -50,6 +50,14 @@ class Character extends Model
     }
 
     /**
+     * @return HasMany<CharacterItem, $this>
+     */
+    public function items(): HasMany
+    {
+        return $this->hasMany(CharacterItem::class);
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

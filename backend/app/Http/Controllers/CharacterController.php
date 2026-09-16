@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\CharacterClass;
+use App\Enums\EquipmentSlot;
 use App\Enums\Faction;
 use App\Enums\Profession;
 use App\Enums\Race;
@@ -69,7 +70,7 @@ class CharacterController extends Controller
 
         return Inertia::render('characters/edit', [
             ...$this->formOptions(),
-            'character' => new CharacterResource($character->load('professions')),
+            'character' => new CharacterResource($character->load(['professions', 'items.item'])),
         ]);
     }
 
@@ -162,6 +163,11 @@ class CharacterController extends Controller
                 'value' => $race->value,
                 'label' => $race->label(),
                 'faction' => $race->faction()->value,
+            ]),
+            'equipmentSlots' => collect(EquipmentSlot::cases())->map(fn (EquipmentSlot $slot) => [
+                'value' => $slot->value,
+                'label' => $slot->label(),
+                'column' => $slot->column(),
             ]),
         ];
     }
