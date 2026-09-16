@@ -8,6 +8,7 @@ import type { FormEventHandler } from 'react';
 export default function Register() {
     const { data, setData, post, processing, errors, reset } = useForm({
         username: '',
+        email: '',
         password: '',
         password_confirmation: '',
     });
@@ -24,15 +25,6 @@ export default function Register() {
         <GuestLayout title="Criar conta">
             <Head title="Criar conta" />
 
-            <div className="mb-6 rounded-md border border-horde bg-horde-dim/20 p-4 text-sm text-parchment-100">
-                <p className="font-semibold">Não pedimos seu e-mail.</p>
-                <p className="mt-1">
-                    Isso significa que <strong>não há como recuperar sua senha</strong>. Se
-                    esquecer, você perde o acesso e seus personagens. Anote em algum lugar
-                    seguro.
-                </p>
-            </div>
-
             <form onSubmit={submit} className="space-y-4">
                 <div>
                     <InputLabel htmlFor="username">Usuário</InputLabel>
@@ -45,6 +37,22 @@ export default function Register() {
                         className="mt-1"
                     />
                     <InputError message={errors.username} />
+                </div>
+
+                <div>
+                    <InputLabel htmlFor="email">E-mail</InputLabel>
+                    <TextInput
+                        id="email"
+                        type="email"
+                        autoComplete="email"
+                        value={data.email}
+                        onChange={(e) => setData('email', e.target.value)}
+                        className="mt-1"
+                    />
+                    <p className="mt-1 text-xs text-parchment-300">
+                        Usado só pra recuperar sua conta caso você esqueça a senha.
+                    </p>
+                    <InputError message={errors.email} />
                 </div>
 
                 <div>

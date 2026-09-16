@@ -26,6 +26,7 @@ export default function Privacy() {
                         </h2>
                         <ul className="mt-2 list-disc space-y-1 pl-5">
                             <li>Seu nome de usuário.</li>
+                            <li>Seu e-mail, usado só para recuperação de conta.</li>
                             <li>O hash da sua senha (nunca a senha em texto puro).</li>
                             <li>
                                 Os dados dos personagens que você cadastra: nome, facção, classe,
@@ -34,8 +35,9 @@ export default function Privacy() {
                             <li>O endereço IP de acesso, registrado em log por tempo limitado.</li>
                         </ul>
                         <p className="mt-2">
-                            Não pedimos e-mail, nome real ou qualquer outro dado pessoal além
-                            desses.
+                            Não pedimos nome real, endereço ou qualquer outro dado pessoal além
+                            desses. Seu e-mail não é usado pra newsletter, marketing ou qualquer
+                            coisa parecida.
                         </p>
                     </section>
 
@@ -64,11 +66,13 @@ export default function Privacy() {
 
                     <section>
                         <h2 className="font-heading text-lg font-semibold text-parchment-100">
-                            Sem recuperação de senha
+                            Recuperação de senha
                         </h2>
                         <p className="mt-2">
-                            Como não coletamos e-mail, não há como recuperar uma senha esquecida.
-                            Se isso acontecer, a conta e os personagens são perdidos.
+                            Pedimos seu e-mail para permitir a recuperação de conta no futuro. Por
+                            enquanto esse fluxo ainda não está pronto — nenhum e-mail é enviado
+                            automaticamente hoje — então, até lá, se você esquecer a senha, ainda
+                            não tem como recuperar sozinho. Anote em algum lugar seguro.
                         </p>
                     </section>
 

@@ -38,6 +38,11 @@ export default function Account() {
             <div className="mb-8 rounded-lg border border-tavern-700 bg-tavern-900 p-6">
                 <h2 className="font-heading text-lg font-semibold text-parchment-100">Usuário</h2>
                 <p className="mt-2 text-parchment-200">{auth.user.username}</p>
+
+                <h2 className="mt-4 font-heading text-lg font-semibold text-parchment-100">
+                    E-mail
+                </h2>
+                <p className="mt-2 text-parchment-200">{auth.user.email}</p>
             </div>
 
             <div className="rounded-lg border border-horde p-6">
