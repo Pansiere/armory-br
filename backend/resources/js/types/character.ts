@@ -18,6 +18,12 @@ export type ProfessionOption = {
     isPrimary: boolean;
 };
 
+export type RaceOption = {
+    value: string;
+    label: string;
+    faction: Faction;
+};
+
 export type CharacterProfession = {
     id: number;
     name: string;
@@ -34,6 +40,9 @@ export type Character = {
     class_color: string;
     class_needs_text_outline: boolean;
     spec: string | null;
+    race: string | null;
+    race_label: string | null;
+    level: number | null;
     position: number;
     professions: CharacterProfession[];
 };
@@ -42,4 +51,5 @@ export type CharacterFormOptions = {
     factions: FactionOption[];
     classes: CharacterClassOption[];
     professions: ProfessionOption[];
+    races: RaceOption[];
 };

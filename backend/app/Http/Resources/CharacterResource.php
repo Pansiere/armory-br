@@ -25,6 +25,9 @@ class CharacterResource extends JsonResource
             'class_color' => $this->class->color(),
             'class_needs_text_outline' => $this->class->needsTextOutline(),
             'spec' => $this->spec,
+            'race' => $this->race?->value,
+            'race_label' => $this->race?->label(),
+            'level' => $this->level,
             'position' => $this->position,
             'professions' => $this->whenLoaded(
                 'professions',
