@@ -11,6 +11,7 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
+            equipmentImport: { equipped: number; ignored: number } | null;
             [key: string]: unknown;
         };
     }

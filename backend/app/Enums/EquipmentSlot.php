@@ -95,8 +95,30 @@ enum EquipmentSlot: string
             self::Ring1, self::Ring2 => [InventorySlot::Finger],
             self::Trinket1, self::Trinket2 => [InventorySlot::Trinket],
             self::MainHand => [InventorySlot::OneHand, InventorySlot::TwoHand, InventorySlot::MainHand],
-            self::OffHand => [InventorySlot::Shield, InventorySlot::OffHand, InventorySlot::HeldInOffHand],
+            self::OffHand => [InventorySlot::Shield, InventorySlot::OffHand, InventorySlot::HeldInOffHand, InventorySlot::OneHand],
             self::Ranged => [InventorySlot::Ranged, InventorySlot::RangedRight, InventorySlot::Relic, InventorySlot::Thrown],
         };
+    }
+
+    /**
+     * Pro import em massa (seção 7.2): primeiro slot do boneco (na ordem
+     * declarada aqui, por isso anel 1 vem antes do anel 2) que aceita esse
+     * InventorySlot e ainda não foi preenchido neste lote de import.
+     *
+     * @param  array<int, self>  $alreadyFilled
+     */
+    public static function firstAvailableFor(InventorySlot $inventorySlot, array $alreadyFilled): ?self
+    {
+        foreach (self::cases() as $slot) {
+            if (in_array($slot, $alreadyFilled, true)) {
+                continue;
+            }
+
+            if (in_array($inventorySlot, $slot->acceptedInventorySlots(), true)) {
+                return $slot;
+            }
+        }
+
+        return null;
     }
 }

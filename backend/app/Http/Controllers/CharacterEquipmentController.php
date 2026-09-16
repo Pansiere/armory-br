@@ -7,6 +7,7 @@ use App\Models\Character;
 use App\Models\Item;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
@@ -50,5 +51,61 @@ class CharacterEquipmentController extends Controller
         $character->items()->where('slot', $equipmentSlot->value)->delete();
 
         return back();
+    }
+
+    /**
+     * Monta o boneco inteiro a partir do texto que addons de WotLK exportam
+     * (seção 7.2). Não depende de um formato de addon específico — só
+     * procura por links de item (`item:ID`, o jeito universal do WoW
+     * representar um item em texto) e encaixa cada um no primeiro slot do
+     * boneco que aceita aquele tipo de item. Idempotente: colar de novo só
+     * atualiza os mesmos slots, nunca duplica.
+     */
+    public function import(Request $request, Character $character): RedirectResponse
+    {
+        Gate::authorize('update', $character);
+
+        $validated = $request->validate([
+            'text' => ['required', 'string', 'max:20000'],
+        ]);
+
+        preg_match_all('/item:(\d+)/i', $validated['text'], $matches);
+        $itemIds = array_values(array_unique(array_map('intval', $matches[1])));
+
+        if ($itemIds === []) {
+            return back()->with('equipmentImport', ['equipped' => 0, 'ignored' => 0]);
+        }
+
+        $items = Item::query()->whereIn('item_id', $itemIds)->get()->keyBy('item_id');
+
+        $summary = DB::transaction(function () use ($character, $itemIds, $items) {
+            $equipped = 0;
+            $ignored = 0;
+            $filledSlots = [];
+
+            foreach ($itemIds as $itemId) {
+                $item = $items->get($itemId);
+
+                $slot = $item ? EquipmentSlot::firstAvailableFor($item->slot, $filledSlots) : null;
+
+                if ($slot === null) {
+                    $ignored++;
+
+                    continue;
+                }
+
+                $filledSlots[] = $slot;
+                $equipped++;
+
+                $character->items()->updateOrCreate(
+                    ['slot' => $slot->value],
+                    ['item_id' => $item->id],
+                );
+            }
+
+            return ['equipped' => $equipped, 'ignored' => $ignored];
+        });
+
+        return back()->with('equipmentImport', $summary);
     }
 }
