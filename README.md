@@ -29,12 +29,29 @@ cd backend
 vendor/bin/pest
 ```
 
+## Base de itens
+
+```bash
+cd backend
+php artisan items:import
+```
+
+Baixa `item_template.sql` do [AzerothCore-wotlk](https://github.com/azerothcore/azerothcore-wotlk)
+(pinado num commit fixo, pra ficar reproduzível) e popula a tabela `items` —
+nome, qualidade, slot, item level. **Só funciona com MySQL/MariaDB** (o dump é
+MySQL); precisa do client `mysql` disponível no PATH.
+
+Ícone ainda não vem populado: o AzerothCore não redistribui esse dado no
+GitHub porque ele vem extraído do cliente do jogo (licenciado pela Blizzard,
+não pode ser redistribuído livremente). Precisa de outra fonte — Wowhead é a
+candidata natural — ainda não implementada.
+
 ## Avisos legais
 
 - **World of Warcraft, seus nomes, ícones e arte pertencem à Blizzard
   Entertainment.** Este projeto não é afiliado, patrocinado nem endossado pela
   Blizzard. A licença MIT deste repositório cobre o código, não os ativos do jogo.
-- O **TrinityCore é GPL-2.0**. O dump do banco de itens não é commitado neste
+- O **AzerothCore é GPL-2.0**. O dump do banco de itens não é commitado neste
   repositório — apenas o comando que baixa e importa os dados.
 
 ## Privacidade
