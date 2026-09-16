@@ -39,8 +39,9 @@ vendor/bin/pest
 
 ## Privacidade
 
-Cadastro é só usuário e senha — sem e-mail, sem recuperação de senha. Detalhes
-completos na página `/privacy-policy` da aplicação.
+Cadastro pede usuário, e-mail e senha. O e-mail é coletado para permitir
+recuperação de conta no futuro — por enquanto nenhum e-mail é enviado
+automaticamente. Detalhes completos na página `/privacy-policy` da aplicação.
 
 ## Licença
 
