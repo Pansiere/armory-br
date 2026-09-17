@@ -13,8 +13,10 @@ Route::get('/', function () {
 
 Route::inertia('/privacy-policy', 'privacy')->name('privacy');
 
-Route::get('p/{token}', [PublicCharacterController::class, 'show'])->name('characters.public');
-Route::get('p/{token}/preview.png', [PublicCharacterController::class, 'image'])->name('characters.public.image');
+Route::middleware('throttle:30,1')->group(function () {
+    Route::get('p/{token}', [PublicCharacterController::class, 'show'])->name('characters.public');
+    Route::get('p/{token}/preview.png', [PublicCharacterController::class, 'image'])->name('characters.public.image');
+});
 
 Route::middleware('auth')->group(function () {
     Route::get('dashboard', [CharacterController::class, 'index'])->name('dashboard');

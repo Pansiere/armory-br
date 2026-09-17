@@ -146,7 +146,7 @@ class ImportItems extends Command
         $response->throw();
 
         $icons = collect($response->json())
-            ->filter(fn (array $entry) => ! empty($entry['itemId']) && ! empty($entry['icon']))
+            ->filter(fn (mixed $entry) => is_array($entry) && ! empty($entry['itemId']) && ! empty($entry['icon']))
             ->map(fn (array $entry) => ['item_id' => $entry['itemId'], 'icon' => $entry['icon']])
             ->unique('item_id');
 
