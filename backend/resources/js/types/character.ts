@@ -67,9 +67,9 @@ export type Character = {
     position: number;
     is_public: boolean;
     public_url: string | null;
+    average_item_level: number | null;
     professions: CharacterProfession[];
-    /** Só vem preenchido quando a página carrega a relação (tela de edição). */
-    equipment?: CharacterEquipment[];
+    equipment: CharacterEquipment[];
 };
 
 export type CharacterFormOptions = {

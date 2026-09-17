@@ -31,6 +31,7 @@ class CharacterResource extends JsonResource
             'position' => $this->position,
             'is_public' => $this->is_public,
             'public_url' => $this->is_public ? route('characters.public', $this->public_token) : null,
+            'average_item_level' => $this->whenLoaded('items', fn () => $this->averageItemLevel()),
             'professions' => $this->whenLoaded(
                 'professions',
                 fn () => $this->professions->map(fn ($profession) => [
