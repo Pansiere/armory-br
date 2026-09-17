@@ -17,6 +17,8 @@ onde não existe uma Armory oficial: todo dado é cadastrado manualmente pelo us
   facção do personagem. Responsivo de verdade (colunas empilham no celular).
 - **Boneco visual de equipamento**, com os 19 slots equipáveis do 3.3.5, ícone
   real de cada item e borda colorida por qualidade (cinza/branco/verde/azul/roxo/laranja).
+- **Sockets e gemas**: item com socket (vermelho/amarelo/azul/meta) ganha selos
+  clicáveis no boneco — busca só gemas compatíveis com a cor daquele socket.
 - **Dual spec**: até 2 especializações por personagem (as 3 árvores de talento
   de cada classe, com ícone), cada uma com o seu próprio conjunto de
   equipamento — trocar de aba no boneco troca o gear junto, igual no jogo.
@@ -110,6 +112,12 @@ relação pronta. Os ícones em si não são baixados nem commitados: a app só
 guarda o nome e monta a URL na hora, apontando pro CDN do Wowhead
 (`wow.zamimg.com`) — o mesmo hotlink que praticamente todo addon/site de WoW
 usa.
+
+Por fim resolve a cor de cada gema (pra bater com o socket certo no boneco).
+O AzerothCore não distribui essa informação como SQL (`gemproperties_dbc.sql`
+do repositório só tem schema, sem linha nenhuma — isso normalmente vem do DBC
+do cliente do jogo, não do banco do servidor), então a cor é lida do próprio
+texto de descrição da gema no `item_template` (ex.: "Matches a Red Socket.").
 
 ## Avisos legais
 
