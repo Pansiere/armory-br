@@ -3,7 +3,12 @@
 namespace App\Support;
 
 use App\Models\Character;
+use App\Models\Item;
 use GdImage;
+use Illuminate\Http\Client\Pool;
+use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 
 /**
  * Imagem de preview (og:image) pra quando o link público de um personagem é
@@ -11,8 +16,10 @@ use GdImage;
  * dependência pesada tipo navegador headless) usando as fontes Cinzel e
  * Instrument Sans bundladas em resources/fonts (OFL, mesmas do app).
  *
- * Sem ícone de item ainda (seção 8) — o resumo do equipamento é só um
- * quadradinho colorido por qualidade, por enquanto.
+ * Os ícones dos itens equipados são buscados do CDN do Wowhead em paralelo
+ * (Http::pool) e cacheados por 30 dias — o nome do ícone nunca muda pra um
+ * item existente. Se um ícone não resolver (rede fora, item sem ícone
+ * conhecido), cai de volta pro quadradinho colorido por qualidade.
  */
 class CharacterPreviewImage
 {
@@ -61,32 +68,52 @@ class CharacterPreviewImage
             imagettftext($image, 18, 0, 60, 288, $muted, $sans, $this->truncate($professions, 70));
         }
 
-        $this->drawEquipmentSummary($image, $sans, $muted);
+        $icons = $this->drawEquipmentSummary($image, $sans, $muted);
 
         ob_start();
         imagepng($image);
         $png = ob_get_clean();
         imagedestroy($image);
 
+        foreach ($icons as $icon) {
+            imagedestroy($icon);
+        }
+
         return $png;
     }
 
-    private function drawEquipmentSummary(GdImage $image, string $sansFont, int $mutedColor): void
+    /**
+     * @return array<string, GdImage>
+     */
+    private function drawEquipmentSummary(GdImage $image, string $sansFont, int $mutedColor): array
     {
         if ($this->character->items->isEmpty()) {
-            return;
+            return [];
         }
 
         imagettftext($image, 16, 0, 60, 360, $mutedColor, $sansFont, 'EQUIPAMENTO');
 
+        $icons = $this->fetchIcons();
+
         $x = 60;
         $y = 380;
         $size = 36;
+        $inset = 3;
         $gap = 10;
 
         foreach ($this->character->items as $characterItem) {
-            $color = $this->color($image, $characterItem->item->quality->color());
-            imagefilledrectangle($image, $x, $y, $x + $size, $y + $size, $color);
+            $borderColor = $this->color($image, $characterItem->item->quality->color());
+            imagefilledrectangle($image, $x, $y, $x + $size, $y + $size, $borderColor);
+
+            $icon = $icons[$characterItem->item->icon] ?? null;
+            if ($icon !== null) {
+                $innerSize = $size - ($inset * 2);
+                imagecopyresampled(
+                    $image, $icon,
+                    $x + $inset, $y + $inset, 0, 0,
+                    $innerSize, $innerSize, imagesx($icon), imagesy($icon),
+                );
+            }
 
             $x += $size + $gap;
             if ($x > self::WIDTH - 100) {
@@ -94,6 +121,70 @@ class CharacterPreviewImage
                 $y += $size + $gap;
             }
         }
+
+        return $icons;
+    }
+
+    /**
+     * Busca (com cache) os ícones dos itens equipados, decodificados como
+     * GdImage. Falhas individuais (rede, ícone corrompido) são ignoradas —
+     * o item correspondente simplesmente não entra no array de retorno.
+     *
+     * @return array<string, GdImage>
+     */
+    private function fetchIcons(): array
+    {
+        $items = $this->character->items
+            ->map(fn ($characterItem) => $characterItem->item)
+            ->filter(fn (Item $item) => $item->icon !== null)
+            ->unique('icon')
+            ->values();
+
+        if ($items->isEmpty()) {
+            return [];
+        }
+
+        $bytesByName = [];
+        $toFetch = [];
+
+        foreach ($items as $item) {
+            $cached = Cache::get("item-icon-bytes:{$item->icon}");
+
+            if ($cached !== null) {
+                $bytesByName[$item->icon] = base64_decode($cached);
+            } else {
+                $toFetch[] = $item;
+            }
+        }
+
+        if ($toFetch !== []) {
+            $responses = Http::pool(fn (Pool $pool) => collect($toFetch)
+                ->map(fn (Item $item) => $pool->as($item->icon)->timeout(3)->get($item->iconUrl()))
+                ->all());
+
+            foreach ($toFetch as $item) {
+                $response = $responses[$item->icon] ?? null;
+
+                if ($response instanceof Response && $response->successful()) {
+                    $bytesByName[$item->icon] = $response->body();
+                    // O driver de cache "database" exige texto válido em UTF-8;
+                    // bytes crus de um JPEG não são — por isso base64 aqui.
+                    Cache::put("item-icon-bytes:{$item->icon}", base64_encode($response->body()), now()->addDays(30));
+                }
+            }
+        }
+
+        $images = [];
+
+        foreach ($bytesByName as $name => $bytes) {
+            $decoded = @imagecreatefromstring($bytes);
+
+            if ($decoded !== false) {
+                $images[$name] = $decoded;
+            }
+        }
+
+        return $images;
     }
 
     private function truncate(string $text, int $maxLength): string

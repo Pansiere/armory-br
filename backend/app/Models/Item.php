@@ -35,4 +35,14 @@ class Item extends Model
             'item_level' => 'integer',
         ];
     }
+
+    /**
+     * O CDN de ícones do Wowhead (wow.zamimg.com) é o hotlink padrão usado
+     * por praticamente todo addon/site de WoW — não temos os ícones em si
+     * pra redistribuir (ver ImportItems::resolveIcons()), só o nome.
+     */
+    public function iconUrl(): ?string
+    {
+        return $this->icon ? "https://wow.zamimg.com/images/wow/icons/medium/{$this->icon}.jpg" : null;
+    }
 }

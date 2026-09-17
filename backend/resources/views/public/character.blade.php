@@ -76,6 +76,13 @@
                                 <span class="w-28 shrink-0 text-xs text-parchment-300">
                                     {{ $characterItem->slot->label() }}
                                 </span>
+                                @if ($characterItem->item->iconUrl())
+                                    <img
+                                        src="{{ $characterItem->item->iconUrl() }}"
+                                        alt=""
+                                        class="h-6 w-6 shrink-0 rounded-sm"
+                                    >
+                                @endif
                                 <span style="color: {{ $characterItem->item->quality->color() }}">
                                     {{ $characterItem->item->name }}
                                 </span>

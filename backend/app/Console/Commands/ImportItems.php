@@ -20,9 +20,22 @@ class ImportItems extends Command
     private const REPO_RAW_BASE = 'https://raw.githubusercontent.com/azerothcore/azerothcore-wotlk';
 
     /**
+     * Mapeamento item_id -> nome do ícone (ex.: "inv_sword_04"). O
+     * AzerothCore não redistribui esse dado (vem do cliente do jogo, ver
+     * método resolveIcons()); o nexus-devs/wow-classic-items (MIT) publica
+     * um JSON já pronto com essa relação, então usamos o dele em vez de
+     * raspar o Wowhead nós mesmos.
+     */
+    private const ICONS_DEFAULT_REF = '8339771805564c6de7850ff9428be8e841f69622';
+
+    private const ICONS_REPO_RAW_BASE = 'https://raw.githubusercontent.com/nexus-devs/wow-classic-items';
+
+    /**
      * @var string
      */
-    protected $signature = 'items:import {--ref='.self::DEFAULT_REF.' : commit/branch/tag do azerothcore-wotlk}';
+    protected $signature = 'items:import
+        {--ref='.self::DEFAULT_REF.' : commit/branch/tag do azerothcore-wotlk}
+        {--icons-ref='.self::ICONS_DEFAULT_REF.' : commit/branch/tag do nexus-devs/wow-classic-items}';
 
     /**
      * @var string
@@ -47,8 +60,10 @@ class ImportItems extends Command
             $this->info('Transformando pra tabela items...');
             $count = $this->transform();
 
-            $this->info("Pronto: {$count} itens importados.");
-            $this->warn('Ícone não vem nesse dump (é dado extraído do cliente do jogo, o AzerothCore não redistribui isso no git) — fica NULL por enquanto.');
+            $this->info('Baixando mapeamento de ícones...');
+            $iconCount = $this->resolveIcons((string) $this->option('icons-ref'));
+
+            $this->info("Pronto: {$count} itens importados, {$iconCount} ícones resolvidos.");
         } finally {
             DB::unprepared('DROP TABLE IF EXISTS `item_template`');
             File::delete($optionsFile);
@@ -116,5 +131,37 @@ class ImportItems extends Command
 
             return DB::table('items')->count();
         });
+    }
+
+    /**
+     * Baixa o data.json do wow-classic-items (item_id -> nome do ícone) e
+     * atualiza a coluna icon via join numa tabela temporária — bem mais
+     * rápido que um UPDATE por item.
+     */
+    private function resolveIcons(string $ref): int
+    {
+        $url = self::ICONS_REPO_RAW_BASE."/{$ref}/data/json/data.json";
+
+        $response = Http::timeout(120)->get($url);
+        $response->throw();
+
+        $icons = collect($response->json())
+            ->filter(fn (array $entry) => ! empty($entry['itemId']) && ! empty($entry['icon']))
+            ->map(fn (array $entry) => ['item_id' => $entry['itemId'], 'icon' => $entry['icon']])
+            ->unique('item_id');
+
+        DB::unprepared('CREATE TEMPORARY TABLE item_icons (item_id INT UNSIGNED PRIMARY KEY, icon VARCHAR(255) NOT NULL)');
+
+        try {
+            $icons->chunk(1000)->each(fn ($chunk) => DB::table('item_icons')->insert($chunk->all()));
+
+            return DB::update('
+                UPDATE items
+                INNER JOIN item_icons ON item_icons.item_id = items.item_id
+                SET items.icon = item_icons.icon
+            ');
+        } finally {
+            DB::unprepared('DROP TEMPORARY TABLE IF EXISTS item_icons');
+        }
     }
 }

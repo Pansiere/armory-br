@@ -41,6 +41,7 @@ export type ItemSummary = {
     id: number;
     name: string;
     icon: string | null;
+    icon_url: string | null;
     quality: string;
     quality_label: string;
     quality_color: string;
