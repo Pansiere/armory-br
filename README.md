@@ -17,15 +17,52 @@ onde não existe uma Armory oficial: todo dado é cadastrado manualmente pelo us
   facção do personagem. Responsivo de verdade (colunas empilham no celular).
 - **Boneco visual de equipamento**, com os 19 slots equipáveis do 3.3.5, ícone
   real de cada item e borda colorida por qualidade (cinza/branco/verde/azul/roxo/laranja).
-- **Import de equipamento colado**: cola o texto exportado por qualquer addon de
-  WotLK e o boneco inteiro é montado de uma vez, reconhecendo os itens pelo link
-  (`item:ID`) e resolvendo o slot pela própria base de dados.
+- **Import de equipamento colado**: cola o texto exportado pelo addon
+  [SimulationCraft](#importando-equipamento) (ou o link de qualquer item colado
+  do chat) e o boneco inteiro é montado de uma vez — sem precisar cadastrar
+  item por item.
 - **Perfil público opt-in**: cada personagem pode gerar um link (`/p/{token}`)
   sem necessidade de login, com imagem de preview (Open Graph) gerada na hora —
   cola no Discord da guilda e aparece o boneco montado.
 - Raça, nível e **item level médio** (calculado a partir do equipamento) do
   personagem.
 - Busca de itens com índice full-text (MySQL/MariaDB).
+
+## Importando equipamento
+
+Não existe (ainda) um jeito de importar o personagem inteiro — nome, raça,
+classe, nível e profissões continuam sendo cadastrados na mão, uma vez por
+personagem, porque não há acesso ao banco do servidor pra puxar isso
+automaticamente. O que a importação resolve é a parte chata de configurar o
+**equipamento**, item por item.
+
+### Com o addon SimulationCraft (recomendado)
+
+O [SimulationCraft](https://github.com/simulationcraft/simc-addon) é o addon
+de export de personagem mais usado da comunidade WoW, incluindo servidores
+privados de 3.3.5 — ele só lê a API do próprio cliente, então não depende de
+nenhum suporte especial do servidor.
+
+1. Instale o addon (ex.: [CurseForge](https://www.curseforge.com/wow/addons/simulationcraft))
+   e entre no jogo com o personagem que quer importar.
+2. Digite `/simc` na barra de chat. Uma janela abre com o perfil do
+   personagem já selecionado — `Ctrl+C` pra copiar.
+3. Na Armory BR, cadastre o personagem (nome/raça/classe/nível) se ainda não
+   existir, entre na edição dele e cole o texto na caixa **"Colar
+   equipamento"**. Cada peça é reconhecida pelo nome do slot que o SimC
+   escreve (`head=`, `main_hand=`, etc.) e cai automaticamente no lugar
+   certo do boneco.
+
+### Sem addon
+
+Funciona também sem instalar nada: dentro do jogo, dê `Shift+clique` em cada
+item equipado no seu painel de personagem — isso insere o link do item na
+caixa de chat. Selecione o texto, copie e cole na mesma caixa de "Colar
+equipamento". É mais repetitivo (até 19 cliques), mas usa só recursos
+nativos do cliente.
+
+Colar de novo (depois de trocar de gear) é seguro — a importação atualiza os
+mesmos slots, nunca duplica.
 
 ## Stack
 

@@ -31,9 +31,12 @@ export default function EquipmentImport({ characterId }: { characterId: number }
                 Colar equipamento
             </h3>
             <p className="mt-1 text-xs text-parchment-300">
-                Cole aqui o texto que seu addon exporta com os itens equipados — a
-                gente reconhece os links de item no texto e monta o boneco de uma vez,
-                em vez de buscar um por um.
+                Tem o addon <strong className="text-parchment-100">SimulationCraft</strong>? Digite{' '}
+                <code className="rounded bg-tavern-950 px-1 py-0.5 text-parchment-200">/simc</code>{' '}
+                no jogo, copie o texto e cole aqui — a gente monta o boneco inteiro de
+                uma vez. Sem addon, também funciona: dá{' '}
+                <span className="text-parchment-200">shift-clique</span> em cada item
+                equipado (isso cola o link dele no chat) e cole o texto do chat aqui.
             </p>
 
             <textarea
