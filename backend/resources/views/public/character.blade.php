@@ -4,12 +4,18 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
+        @php
+            $summary = $character->class->label().' '.$character->faction->label();
+            $summary .= $character->level ? ', nível '.$character->level : '';
+            $summary .= $character->averageItemLevel() ? ', ilvl '.$character->averageItemLevel() : '';
+        @endphp
+
         <title>{{ $character->name }} — {{ config('app.name') }}</title>
-        <meta name="description" content="{{ $character->class->label() }} {{ $character->faction->label() }}{{ $character->level ? ', nível '.$character->level : '' }} — vitrine de personagem de WoW 3.3.5.">
+        <meta name="description" content="{{ $summary }} — vitrine de personagem de WoW 3.3.5.">
 
         <meta property="og:type" content="profile">
         <meta property="og:title" content="{{ $character->name }} — {{ config('app.name') }}">
-        <meta property="og:description" content="{{ $character->class->label() }} {{ $character->faction->label() }}{{ $character->level ? ', nível '.$character->level : '' }}">
+        <meta property="og:description" content="{{ $summary }}">
         <meta property="og:image" content="{{ route('characters.public.image', $character->public_token) }}">
         <meta property="og:url" content="{{ route('characters.public', $character->public_token) }}">
         <meta name="twitter:card" content="summary_large_image">
@@ -45,6 +51,12 @@
                 @if ($character->professions->isNotEmpty())
                     <p class="mt-2 text-sm text-parchment-300">
                         {{ $character->professions->map(fn ($profession) => $profession->name->label())->join(' · ') }}
+                    </p>
+                @endif
+
+                @if ($character->averageItemLevel())
+                    <p class="mt-2 text-sm text-parchment-300">
+                        Item level médio: {{ $character->averageItemLevel() }}
                     </p>
                 @endif
             </div>

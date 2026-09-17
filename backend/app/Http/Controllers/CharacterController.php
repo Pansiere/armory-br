@@ -23,7 +23,7 @@ class CharacterController extends Controller
     {
         $characters = $request->user()
             ->characters()
-            ->with('professions')
+            ->with(['professions', 'items.item'])
             ->orderBy('position')
             ->get()
             ->groupBy(fn (Character $character) => $character->faction->value);

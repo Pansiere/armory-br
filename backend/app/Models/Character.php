@@ -67,6 +67,19 @@ class Character extends Model
     }
 
     /**
+     * Item level médio dos itens equipados (seção 7.4). Null sem nenhum
+     * item equipado ainda.
+     */
+    public function averageItemLevel(): ?int
+    {
+        if ($this->items->isEmpty()) {
+            return null;
+        }
+
+        return (int) round($this->items->avg(fn (CharacterItem $characterItem) => $characterItem->item->item_level));
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

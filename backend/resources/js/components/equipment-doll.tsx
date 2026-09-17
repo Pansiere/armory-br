@@ -89,8 +89,13 @@ export default function EquipmentDoll({
 
     return (
         <div>
-            <h2 className="mb-3 font-heading text-lg font-semibold text-parchment-100">
+            <h2 className="mb-3 flex items-baseline gap-2 font-heading text-lg font-semibold text-parchment-100">
                 Equipamento
+                {character.average_item_level && (
+                    <span className="font-sans text-sm font-normal text-parchment-300">
+                        item level médio: {character.average_item_level}
+                    </span>
+                )}
             </h2>
 
             <div className="grid gap-2 sm:grid-cols-2">

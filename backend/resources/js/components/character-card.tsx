@@ -23,7 +23,14 @@ export default function CharacterCard({ character }: { character: Character }) {
                 <p className="truncate font-medium">
                     {character.name}
                     {character.level ? (
-                        <span className="text-ink/60"> ({character.level})</span>
+                        <span className="text-ink/60">
+                            {' '}
+                            ({character.level}
+                            {character.average_item_level
+                                ? ` · ilvl ${character.average_item_level}`
+                                : ''}
+                            )
+                        </span>
                     ) : (
                         ''
                     )}

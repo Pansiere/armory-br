@@ -48,6 +48,7 @@ class CharacterPreviewImage
             $this->character->class->label(),
             $this->character->level ? 'Nível '.$this->character->level : null,
             $this->character->race?->label(),
+            $this->character->averageItemLevel() ? 'ilvl '.$this->character->averageItemLevel() : null,
         ])->filter()->implode('   ·   ');
 
         imagettftext($image, 22, 0, 60, 248, $parchment, $sans, $info);
