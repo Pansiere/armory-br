@@ -8,6 +8,25 @@ por facção (Aliança/Horda), na ordem que ele mesmo definiu — do PC ou do ce
 Feito para quem joga em servidores privados brasileiros de Wrath of the Lich King,
 onde não existe uma Armory oficial: todo dado é cadastrado manualmente pelo usuário.
 
+## Funcionalidades
+
+- Cadastro e login, isolamento total entre usuários (Policies), exclusão de conta
+  apagando tudo de verdade (LGPD).
+- Tela principal com as duas colunas de facção, contador em cada uma, e
+  arrastar-e-soltar para reordenar — arrastar de uma coluna pra outra troca a
+  facção do personagem. Responsivo de verdade (colunas empilham no celular).
+- **Boneco visual de equipamento**, com os 19 slots equipáveis do 3.3.5 e borda
+  colorida por qualidade do item (cinza/branco/verde/azul/roxo/laranja).
+- **Import de equipamento colado**: cola o texto exportado por qualquer addon de
+  WotLK e o boneco inteiro é montado de uma vez, reconhecendo os itens pelo link
+  (`item:ID`) e resolvendo o slot pela própria base de dados.
+- **Perfil público opt-in**: cada personagem pode gerar um link (`/p/{token}`)
+  sem necessidade de login, com imagem de preview (Open Graph) gerada na hora —
+  cola no Discord da guilda e aparece o boneco montado.
+- Raça, nível e **item level médio** (calculado a partir do equipamento) do
+  personagem.
+- Busca de itens com índice full-text (MySQL/MariaDB).
+
 ## Stack
 
 - **Backend** (`backend/`): Laravel + Inertia.js + React (TypeScript) + Tailwind CSS.
