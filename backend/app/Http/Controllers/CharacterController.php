@@ -24,7 +24,7 @@ class CharacterController extends Controller
     {
         $characters = $request->user()
             ->characters()
-            ->with(['specs.items.item', 'professions'])
+            ->with(['specs.items.item', 'specs.items.gems.item', 'professions'])
             ->orderBy('position')
             ->get()
             ->groupBy(fn (Character $character) => $character->faction->value);
@@ -72,7 +72,7 @@ class CharacterController extends Controller
 
         return Inertia::render('characters/edit', [
             ...$this->formOptions(),
-            'character' => new CharacterResource($character->load(['specs.items.item', 'professions'])),
+            'character' => new CharacterResource($character->load(['specs.items.item', 'specs.items.gems.item', 'professions'])),
         ]);
     }
 

@@ -1,12 +1,14 @@
 import type { ItemSummary } from '@/types/character';
 import { useEffect, useRef, useState } from 'react';
 
+type SearchTarget = { slot: string } | { gemColor: number };
+
 export default function ItemSearchInput({
-    slot,
+    target,
     onSelect,
     onCancel,
 }: {
-    slot: string;
+    target: SearchTarget;
     onSelect: (item: ItemSummary) => void;
     onCancel: () => void;
 }) {
@@ -14,6 +16,9 @@ export default function ItemSearchInput({
     const [results, setResults] = useState<ItemSummary[]>([]);
     const [loading, setLoading] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    const targetParam =
+        'slot' in target ? `slot=${encodeURIComponent(target.slot)}` : `gem_color=${target.gemColor}`;
 
     useEffect(() => {
         inputRef.current?.focus();
@@ -27,8 +32,9 @@ export default function ItemSearchInput({
 
         setLoading(true);
         const controller = new AbortController();
+
         const timeout = setTimeout(() => {
-            fetch(`/items/search?q=${encodeURIComponent(query)}&slot=${slot}`, {
+            fetch(`/items/search?q=${encodeURIComponent(query)}&${targetParam}`, {
                 headers: { Accept: 'application/json' },
                 signal: controller.signal,
             })
@@ -46,7 +52,7 @@ export default function ItemSearchInput({
             clearTimeout(timeout);
             controller.abort();
         };
-    }, [query, slot]);
+    }, [query, targetParam]);
 
     return (
         <div className="absolute z-10 mt-1 w-64 rounded-md border border-tavern-700 bg-tavern-900 p-2 shadow-xl">

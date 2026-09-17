@@ -18,8 +18,15 @@ use Illuminate\Database\Eloquent\Model;
  * @property InventorySlot $slot
  * @property ItemQuality $quality
  * @property int $item_level
+ * @property int $socket_color_1
+ * @property int $socket_color_2
+ * @property int $socket_color_3
+ * @property int|null $gem_color
  */
-#[Fillable(['item_id', 'name', 'icon', 'slot', 'quality', 'item_level'])]
+#[Fillable([
+    'item_id', 'name', 'icon', 'slot', 'quality', 'item_level',
+    'socket_color_1', 'socket_color_2', 'socket_color_3', 'gem_color',
+])]
 class Item extends Model
 {
     /**
@@ -33,7 +40,36 @@ class Item extends Model
             'slot' => InventorySlot::class,
             'quality' => ItemQuality::class,
             'item_level' => 'integer',
+            'socket_color_1' => 'integer',
+            'socket_color_2' => 'integer',
+            'socket_color_3' => 'integer',
+            'gem_color' => 'integer',
         ];
+    }
+
+    public function isGem(): bool
+    {
+        return $this->gem_color !== null;
+    }
+
+    /**
+     * Cores dos sockets do item (na ordem), só as ocupadas (0 = sem socket
+     * ali é descartado).
+     *
+     * @return array<int, int>
+     */
+    public function socketColors(): array
+    {
+        return array_values(array_filter([
+            $this->socket_color_1,
+            $this->socket_color_2,
+            $this->socket_color_3,
+        ]));
+    }
+
+    public function hasSockets(): bool
+    {
+        return $this->socketColors() !== [];
     }
 
     /**

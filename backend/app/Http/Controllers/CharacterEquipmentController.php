@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Enums\EquipmentSlot;
+use App\Enums\GemColor;
 use App\Enums\Spec;
 use App\Models\Character;
+use App\Models\CharacterItem;
 use App\Models\CharacterSpec;
 use App\Models\Item;
 use Illuminate\Http\RedirectResponse;
@@ -28,7 +30,7 @@ class CharacterEquipmentController extends Controller
             'item_id' => ['required', 'integer', Rule::exists('items', 'id')],
         ]);
 
-        $item = Item::findOrFail($validated['item_id']);
+        $item = Item::findOrFail((int) $validated['item_id']);
 
         $acceptedSlots = array_map(
             fn ($inventorySlot) => $inventorySlot->value,
@@ -37,10 +39,7 @@ class CharacterEquipmentController extends Controller
 
         abort_unless(in_array($item->slot->value, $acceptedSlots, true), 422, 'Esse item não cabe nesse slot.');
 
-        $characterSpec->items()->updateOrCreate(
-            ['slot' => $equipmentSlot->value],
-            ['item_id' => $item->id],
-        );
+        $this->equipItem($characterSpec, $equipmentSlot->value, $item);
 
         return back();
     }
@@ -60,6 +59,71 @@ class CharacterEquipmentController extends Controller
     }
 
     /**
+     * Encaixa uma gema num dos sockets do item equipado nesse slot.
+     */
+    public function updateGem(Request $request, Character $character, string $spec, string $slot, int $position): RedirectResponse
+    {
+        Gate::authorize('update', $character);
+
+        $characterSpec = $this->resolveSpec($character, $spec);
+        $characterItem = $this->resolveEquippedItem($characterSpec, $slot);
+
+        abort_unless(in_array($position, [1, 2, 3], true), 404);
+
+        $validated = $request->validate([
+            'item_id' => ['required', 'integer', Rule::exists('items', 'id')],
+        ]);
+
+        $gem = Item::findOrFail((int) $validated['item_id']);
+        abort_unless($gem->isGem(), 422, 'Esse item não é uma gema.');
+
+        $socketColor = $characterItem->item->socketColors()[$position - 1] ?? null;
+        abort_if($socketColor === null, 422, 'Esse item não tem esse socket.');
+        abort_unless(GemColor::gemFitsSocket($gem->gem_color, $socketColor), 422, 'Essa gema não combina com esse socket.');
+
+        $characterItem->gems()->updateOrCreate(
+            ['socket_position' => $position],
+            ['item_id' => $gem->id],
+        );
+
+        return back();
+    }
+
+    public function destroyGem(Character $character, string $spec, string $slot, int $position): RedirectResponse
+    {
+        Gate::authorize('update', $character);
+
+        $characterSpec = $this->resolveSpec($character, $spec);
+        $characterItem = $this->resolveEquippedItem($characterSpec, $slot);
+
+        $characterItem->gems()->where('socket_position', $position)->delete();
+
+        return back();
+    }
+
+    /**
+     * Equipa o item no slot, cuidando pra não deixar gema "grudada" errada:
+     * como a linha de character_items é reaproveitada (updateOrCreate por
+     * slot, não delete+recreate — senão a reordenação via drag-and-drop e
+     * afins ficariam mais complicadas), trocar de item no mesmo slot exige
+     * limpar as gemas antigas manualmente, já que o item novo pode nem ter
+     * os mesmos sockets do antigo.
+     */
+    private function equipItem(CharacterSpec $characterSpec, string $slotValue, Item $item): void
+    {
+        $existing = $characterSpec->items()->where('slot', $slotValue)->first();
+
+        if ($existing && $existing->item_id !== $item->id) {
+            $existing->gems()->delete();
+        }
+
+        $characterSpec->items()->updateOrCreate(
+            ['slot' => $slotValue],
+            ['item_id' => $item->id],
+        );
+    }
+
+    /**
      * Acha a spec do personagem pelo valor do enum na URL — 404 se o
      * personagem não tem essa spec (não pode equipar em spec que não é dele).
      */
@@ -69,6 +133,14 @@ class CharacterEquipmentController extends Controller
         abort_if($specEnum === null, 404);
 
         return $character->specs()->where('spec', $specEnum->value)->firstOrFail();
+    }
+
+    private function resolveEquippedItem(CharacterSpec $characterSpec, string $slot): CharacterItem
+    {
+        $equipmentSlot = EquipmentSlot::tryFrom($slot);
+        abort_if($equipmentSlot === null, 404);
+
+        return $characterSpec->items()->where('slot', $equipmentSlot->value)->firstOrFail();
     }
 
     /**
@@ -176,10 +248,7 @@ class CharacterEquipmentController extends Controller
                 $filledSlots[] = EquipmentSlot::from($slotValue);
                 $equipped++;
 
-                $characterSpec->items()->updateOrCreate(
-                    ['slot' => $slotValue],
-                    ['item_id' => $item->id],
-                );
+                $this->equipItem($characterSpec, $slotValue, $item);
             }
 
             foreach ($linkItemIds as $itemId) {
@@ -196,10 +265,7 @@ class CharacterEquipmentController extends Controller
                 $filledSlots[] = $slot;
                 $equipped++;
 
-                $characterSpec->items()->updateOrCreate(
-                    ['slot' => $slot->value],
-                    ['item_id' => $item->id],
-                );
+                $this->equipItem($characterSpec, $slot->value, $item);
             }
 
             return ['equipped' => $equipped, 'ignored' => $ignored];

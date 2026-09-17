@@ -1,8 +1,17 @@
 import ItemSearchInput from '@/components/item-search-input';
 import { cn } from '@/lib/utils';
-import type { Character, EquipmentSlotOption, ItemSummary } from '@/types/character';
+import type { Character, CharacterEquipment, EquipmentSlotOption, ItemSummary } from '@/types/character';
 import { router } from '@inertiajs/react';
 import { useState } from 'react';
+
+// Mesma paleta de App\Enums\GemColor::hex() — bitmask 1=meta, 2=vermelho,
+// 4=amarelo, 8=azul.
+const GEM_COLOR_HEX: Record<number, string> = {
+    1: '#8a8a8a',
+    2: '#c0392b',
+    4: '#e1c542',
+    8: '#2f7bc0',
+};
 
 export default function EquipmentDoll({
     character,
@@ -16,16 +25,20 @@ export default function EquipmentDoll({
     onSpecChange: (index: number) => void;
 }) {
     const [activeSlot, setActiveSlot] = useState<string | null>(null);
+    const [activeGemSocket, setActiveGemSocket] = useState<{ slot: string; position: number } | null>(
+        null,
+    );
 
     const spec = character.specs[activeSpecIndex] ?? character.specs[0];
 
-    const equipped = new Map(
-        (spec?.equipment ?? []).map((equipment) => [equipment.slot, equipment.item]),
+    const equipped = new Map<string, CharacterEquipment>(
+        (spec?.equipment ?? []).map((equipment) => [equipment.slot, equipment]),
     );
 
     function switchSpec(index: number) {
         onSpecChange(index);
         setActiveSlot(null);
+        setActiveGemSocket(null);
     }
 
     function equip(slot: string, item: ItemSummary) {
@@ -44,8 +57,25 @@ export default function EquipmentDoll({
         });
     }
 
+    function equipGem(slot: string, position: number, gem: ItemSummary) {
+        setActiveGemSocket(null);
+        router.put(
+            `/characters/${character.id}/equipment/${spec.value}/${slot}/gems/${position}`,
+            { item_id: gem.id },
+            { preserveScroll: true, preserveState: true },
+        );
+    }
+
+    function unequipGem(slot: string, position: number) {
+        router.delete(
+            `/characters/${character.id}/equipment/${spec.value}/${slot}/gems/${position}`,
+            { preserveScroll: true, preserveState: true },
+        );
+    }
+
     function renderSlot(slotOption: EquipmentSlotOption) {
-        const item = equipped.get(slotOption.value);
+        const equipment = equipped.get(slotOption.value);
+        const item = equipment?.item;
 
         return (
             <div key={slotOption.value} className="relative">
@@ -95,10 +125,70 @@ export default function EquipmentDoll({
 
                 {activeSlot === slotOption.value && (
                     <ItemSearchInput
-                        slot={slotOption.value}
+                        target={{ slot: slotOption.value }}
                         onSelect={(selected) => equip(slotOption.value, selected)}
                         onCancel={() => setActiveSlot(null)}
                     />
+                )}
+
+                {item && item.socket_colors.length > 0 && (
+                    <div className="mt-1 ml-3 flex gap-1">
+                        {item.socket_colors.map((socketColor, index) => {
+                            const position = index + 1;
+                            const gem = equipment?.gems.find((g) => g.socket_position === position);
+                            const isActive =
+                                activeGemSocket?.slot === slotOption.value &&
+                                activeGemSocket.position === position;
+
+                            return (
+                                <div key={position} className="relative">
+                                    <button
+                                        type="button"
+                                        title={gem ? gem.item.name : 'Socket vazio'}
+                                        onClick={() =>
+                                            setActiveGemSocket(
+                                                isActive ? null : { slot: slotOption.value, position },
+                                            )
+                                        }
+                                        className="flex h-5 w-5 items-center justify-center rounded-sm"
+                                        style={{
+                                            boxShadow: `0 0 0 1.5px ${GEM_COLOR_HEX[socketColor] ?? '#574632'}`,
+                                            backgroundColor: gem ? undefined : 'rgba(0,0,0,0.3)',
+                                        }}
+                                    >
+                                        {gem?.item.icon_url && (
+                                            <img
+                                                src={gem.item.icon_url}
+                                                alt=""
+                                                className="h-full w-full rounded-[1px]"
+                                            />
+                                        )}
+                                    </button>
+
+                                    {gem && !isActive && (
+                                        <button
+                                            type="button"
+                                            title="Remover gema"
+                                            onClick={() => unequipGem(slotOption.value, position)}
+                                            className="absolute -top-1.5 -right-1.5 flex h-3 w-3 items-center justify-center rounded-full bg-tavern-950 text-[8px] text-parchment-300 hover:text-horde"
+                                        >
+                                            ×
+                                        </button>
+                                    )}
+
+                                    {isActive && (
+                                        <ItemSearchInput
+                                            target={{ gemColor: socketColor }}
+                                            onSelect={(selected) =>
+                                                equipGem(slotOption.value, position, selected)
+                                            }
+                                            onCancel={() => setActiveGemSocket(null)}
+                                        />
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
                 )}
             </div>
         );

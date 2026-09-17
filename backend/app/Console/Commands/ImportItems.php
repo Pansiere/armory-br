@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\GemColor;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -63,7 +64,10 @@ class ImportItems extends Command
             $this->info('Baixando mapeamento de ícones...');
             $iconCount = $this->resolveIcons((string) $this->option('icons-ref'));
 
-            $this->info("Pronto: {$count} itens importados, {$iconCount} ícones resolvidos.");
+            $this->info('Resolvendo cor de gemas a partir da descrição...');
+            $gemCount = $this->resolveGems();
+
+            $this->info("Pronto: {$count} itens importados, {$iconCount} ícones resolvidos, {$gemCount} gemas identificadas.");
         } finally {
             DB::unprepared('DROP TABLE IF EXISTS `item_template`');
             File::delete($optionsFile);
@@ -125,7 +129,11 @@ class ImportItems extends Command
     {
         return DB::transaction(function () {
             DB::statement('
-                INSERT INTO items (item_id, name, icon, slot, quality, item_level, created_at, updated_at)
+                INSERT INTO items (
+                    item_id, name, icon, slot, quality, item_level,
+                    socket_color_1, socket_color_2, socket_color_3,
+                    created_at, updated_at
+                )
                 SELECT
                     t.entry,
                     t.name,
@@ -133,6 +141,9 @@ class ImportItems extends Command
                     t.InventoryType,
                     t.Quality,
                     t.ItemLevel,
+                    t.socketColor_1,
+                    t.socketColor_2,
+                    t.socketColor_3,
                     NOW(),
                     NOW()
                 FROM item_template t
@@ -142,11 +153,77 @@ class ImportItems extends Command
                     slot = VALUES(slot),
                     quality = VALUES(quality),
                     item_level = VALUES(item_level),
+                    socket_color_1 = VALUES(socket_color_1),
+                    socket_color_2 = VALUES(socket_color_2),
+                    socket_color_3 = VALUES(socket_color_3),
                     updated_at = VALUES(updated_at)
             ');
 
             return DB::table('items')->count();
         });
+    }
+
+    /**
+     * Cor da gema não vem pronta em nenhum dump SQL do AzerothCore — o
+     * `gemproperties_dbc.sql` do repositório existe só de schema, sem
+     * dados (essa info normalmente vem do DBC do cliente, não do banco do
+     * servidor). Mas o próprio `item_template.description` da gema já diz
+     * em texto o que ela aceita (ex.: "Matches a Red Socket.", "Only fits
+     * in a meta gem slot."), então derivamos o bitmask dali em vez de
+     * depender de mais uma fonte externa.
+     */
+    private function resolveGems(): int
+    {
+        $gems = DB::table('item_template')
+            ->where('GemProperties', '!=', 0)
+            ->where('description', '!=', '')
+            ->select('entry', 'description')
+            ->get();
+
+        $updates = [];
+
+        foreach ($gems as $gem) {
+            $color = $this->parseGemColor($gem->description);
+
+            if ($color !== null) {
+                $updates[$gem->entry] = $color;
+            }
+        }
+
+        foreach (array_chunk($updates, 500, true) as $chunk) {
+            DB::transaction(function () use ($chunk) {
+                foreach ($chunk as $itemId => $color) {
+                    DB::table('items')->where('item_id', $itemId)->update(['gem_color' => $color]);
+                }
+            });
+        }
+
+        return count($updates);
+    }
+
+    /**
+     * @return int|null Bitmask de GemColor, ou null se a descrição não bate
+     *                  com nenhum padrão reconhecido (socket de profissão
+     *                  tipo "tonk Overdrive", item de montaria, etc. —
+     *                  esses ficam sem gem_color, não aparecem na busca de
+     *                  gema do boneco).
+     */
+    private function parseGemColor(string $description): ?int
+    {
+        if (str_contains($description, 'meta gem slot')) {
+            return GemColor::Meta->value;
+        }
+
+        if (str_contains($description, 'any socket') || str_contains($description, 'any Socket')) {
+            return GemColor::Red->value | GemColor::Yellow->value | GemColor::Blue->value;
+        }
+
+        $mask = 0;
+        $mask |= str_contains($description, 'Red') ? GemColor::Red->value : 0;
+        $mask |= str_contains($description, 'Yellow') ? GemColor::Yellow->value : 0;
+        $mask |= str_contains($description, 'Blue') ? GemColor::Blue->value : 0;
+
+        return $mask !== 0 ? $mask : null;
     }
 
     /**

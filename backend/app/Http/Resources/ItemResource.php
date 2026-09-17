@@ -25,6 +25,8 @@ class ItemResource extends JsonResource
             'quality_label' => $this->quality->label(),
             'quality_color' => $this->quality->color(),
             'item_level' => $this->item_level,
+            'gem_color' => $this->gem_color,
+            'socket_colors' => $this->socketColors(),
         ];
     }
 }

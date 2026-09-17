@@ -6,6 +6,7 @@ use App\Enums\EquipmentSlot;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Um item equipado num slot do boneco visual (seção 7.1), pertencente ao
@@ -33,6 +34,14 @@ class CharacterItem extends Model
     public function item(): BelongsTo
     {
         return $this->belongsTo(Item::class);
+    }
+
+    /**
+     * @return HasMany<CharacterItemGem, $this>
+     */
+    public function gems(): HasMany
+    {
+        return $this->hasMany(CharacterItemGem::class)->orderBy('socket_position');
     }
 
     /**

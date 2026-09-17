@@ -3,6 +3,8 @@
 namespace App\Http\Resources;
 
 use App\Models\Character;
+use App\Models\CharacterItem;
+use App\Models\CharacterItemGem;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -52,7 +54,7 @@ class CharacterResource extends JsonResource
                         ? $characterSpec->averageItemLevel()
                         : null,
                     'equipment' => $characterSpec->relationLoaded('items')
-                        ? $characterSpec->items->map(fn ($characterItem) => [
+                        ? $characterSpec->items->map(fn (CharacterItem $characterItem) => [
                             'slot' => $characterItem->slot->value,
                             'item' => [
                                 'id' => $characterItem->item->id,
@@ -63,7 +65,20 @@ class CharacterResource extends JsonResource
                                 'quality_label' => $characterItem->item->quality->label(),
                                 'quality_color' => $characterItem->item->quality->color(),
                                 'item_level' => $characterItem->item->item_level,
+                                'socket_colors' => $characterItem->item->socketColors(),
                             ],
+                            'gems' => $characterItem->relationLoaded('gems')
+                                ? $characterItem->gems->map(fn (CharacterItemGem $gem) => [
+                                    'socket_position' => $gem->socket_position,
+                                    'item' => [
+                                        'id' => $gem->item->id,
+                                        'name' => $gem->item->name,
+                                        'icon_url' => $gem->item->iconUrl(),
+                                        'quality_color' => $gem->item->quality->color(),
+                                        'gem_color' => $gem->item->gem_color,
+                                    ],
+                                ])
+                                : [],
                         ])
                         : [],
                 ]),

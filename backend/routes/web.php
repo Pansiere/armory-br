@@ -31,6 +31,8 @@ Route::middleware('auth')->group(function () {
     Route::post('characters/{character}/equipment/{spec}/import', [CharacterEquipmentController::class, 'import'])->name('characters.equipment.import');
     Route::put('characters/{character}/equipment/{spec}/{slot}', [CharacterEquipmentController::class, 'update'])->name('characters.equipment.update');
     Route::delete('characters/{character}/equipment/{spec}/{slot}', [CharacterEquipmentController::class, 'destroy'])->name('characters.equipment.destroy');
+    Route::put('characters/{character}/equipment/{spec}/{slot}/gems/{position}', [CharacterEquipmentController::class, 'updateGem'])->name('characters.equipment.gems.update');
+    Route::delete('characters/{character}/equipment/{spec}/{slot}/gems/{position}', [CharacterEquipmentController::class, 'destroyGem'])->name('characters.equipment.gems.destroy');
 
     Route::get('items/search', [ItemController::class, 'search'])->name('items.search');
 

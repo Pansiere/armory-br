@@ -29,18 +29,41 @@ return new class extends Migration
         // Passos separados de propósito: a unique antiga (character_id,
         // slot) dá suporte à FK de character_id — MySQL recusa dropar a
         // unique enquanto a FK existir ("needed in a foreign key
-        // constraint"), e SQLite recusa dropar a coluna enquanto uma index
-        // ainda referenciar ela. Então: solta a FK primeiro, depois a
-        // unique, só então a coluna.
+        // constraint"). Solta a FK primeiro.
         Schema::table('character_items', function (Blueprint $table) {
             $table->dropForeign(['character_id']);
         });
 
-        Schema::table('character_items', function (Blueprint $table) {
-            $table->dropUnique(['character_id', 'slot']);
-            $table->dropColumn('character_id');
-            $table->unique(['character_spec_id', 'slot']);
-        });
+        // A ordem entre dropUnique e dropColumn muda por banco — os dois
+        // discordam de quem vem primeiro:
+        //
+        // - SQLite recusa dropar a coluna enquanto uma unique ainda
+        //   referenciar ela ("error in index ... after drop column"), então
+        //   a unique tem que sumir ANTES da coluna.
+        // - MySQL, ao contrário: dropar uma coluna que faz parte de um
+        //   índice composto não apaga o índice — só encolhe pras colunas
+        //   que sobraram, mantendo o NOME original (aqui sobraria um índice
+        //   único só em `slot`, sozinho, ainda chamado
+        //   character_items_character_id_slot_unique — trava qualquer dois
+        //   personagens de terem algo no mesmo slot ao mesmo tempo). Por
+        //   isso no MySQL a coluna tem que sumir ANTES, pra depois dropar
+        //   por nome o que sobrou do índice.
+        if (DB::getDriverName() === 'mysql') {
+            Schema::table('character_items', function (Blueprint $table) {
+                $table->dropColumn('character_id');
+            });
+
+            Schema::table('character_items', function (Blueprint $table) {
+                $table->dropUnique('character_items_character_id_slot_unique');
+                $table->unique(['character_spec_id', 'slot']);
+            });
+        } else {
+            Schema::table('character_items', function (Blueprint $table) {
+                $table->dropUnique(['character_id', 'slot']);
+                $table->dropColumn('character_id');
+                $table->unique(['character_spec_id', 'slot']);
+            });
+        }
 
         Schema::table('characters', function (Blueprint $table) {
             $table->dropColumn('spec');
