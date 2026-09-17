@@ -70,7 +70,11 @@ class CharacterEquipmentController extends Controller
         ]);
 
         preg_match_all('/item:(\d+)/i', $validated['text'], $matches);
-        $itemIds = array_values(array_unique(array_map('intval', $matches[1])));
+        // Sem array_unique de propósito: um personagem pode ter o mesmo item
+        // em dois slots (dois anéis iguais, duas armas iguais na
+        // dual-empunhadura) — cada ocorrência do link deve poder preencher
+        // seu próprio slot, e firstAvailableFor() já pula slot já usado.
+        $itemIds = array_map('intval', $matches[1]);
 
         if ($itemIds === []) {
             return back()->with('equipmentImport', ['equipped' => 0, 'ignored' => 0]);
