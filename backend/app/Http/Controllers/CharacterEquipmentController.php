@@ -54,12 +54,55 @@ class CharacterEquipmentController extends Controller
     }
 
     /**
+     * Mapeia o nome do slot como o addon SimulationCraft escreve numa linha
+     * de perfil (`head=`, `main_hand=`, ...) pro slot correspondente do
+     * boneco. Alguns nomes têm sinônimo (`shoulder`/`shoulders`) porque o
+     * SimC aceita ambos dependendo da versão/expansão.
+     *
+     * @var array<string, EquipmentSlot>
+     */
+    private const SIMC_SLOT_MAP = [
+        'head' => EquipmentSlot::Head,
+        'neck' => EquipmentSlot::Neck,
+        'shoulder' => EquipmentSlot::Shoulders,
+        'shoulders' => EquipmentSlot::Shoulders,
+        'back' => EquipmentSlot::Back,
+        'chest' => EquipmentSlot::Chest,
+        'shirt' => EquipmentSlot::Shirt,
+        'tabard' => EquipmentSlot::Tabard,
+        'wrist' => EquipmentSlot::Wrists,
+        'wrists' => EquipmentSlot::Wrists,
+        'hand' => EquipmentSlot::Hands,
+        'hands' => EquipmentSlot::Hands,
+        'waist' => EquipmentSlot::Waist,
+        'legs' => EquipmentSlot::Legs,
+        'feet' => EquipmentSlot::Feet,
+        'finger1' => EquipmentSlot::Ring1,
+        'ring1' => EquipmentSlot::Ring1,
+        'finger2' => EquipmentSlot::Ring2,
+        'ring2' => EquipmentSlot::Ring2,
+        'trinket1' => EquipmentSlot::Trinket1,
+        'trinket2' => EquipmentSlot::Trinket2,
+        'main_hand' => EquipmentSlot::MainHand,
+        'off_hand' => EquipmentSlot::OffHand,
+        'ranged' => EquipmentSlot::Ranged,
+    ];
+
+    /**
      * Monta o boneco inteiro a partir do texto que addons de WotLK exportam
-     * (seção 7.2). Não depende de um formato de addon específico — só
-     * procura por links de item (`item:ID`, o jeito universal do WoW
-     * representar um item em texto) e encaixa cada um no primeiro slot do
-     * boneco que aceita aquele tipo de item. Idempotente: colar de novo só
-     * atualiza os mesmos slots, nunca duplica.
+     * (seção 7.2). Reconhece dois formatos, sem exigir um addon específico:
+     *
+     * 1. Perfil do SimulationCraft (comando `/simc` no jogo) — linhas tipo
+     *    `head=algum_item,id=12345,...`. Recomendado no README porque o
+     *    addon já roda em qualquer servidor (lê só a API do cliente) e o
+     *    nome do slot vem explícito na própria linha, então esse caminho é
+     *    resolvido primeiro e manda no slot.
+     * 2. Links de item crus (`item:ID`, o jeito universal do WoW representar
+     *    um item em texto — o que sobra ao colar do chat, de um shift-clique
+     *    ou de qualquer outro addon). Preenche o primeiro slot do boneco que
+     *    aceita aquele tipo de item, pulando os que o passo 1 já ocupou.
+     *
+     * Idempotente: colar de novo só atualiza os mesmos slots, nunca duplica.
      */
     public function import(Request $request, Character $character): RedirectResponse
     {
@@ -69,25 +112,57 @@ class CharacterEquipmentController extends Controller
             'text' => ['required', 'string', 'max:20000'],
         ]);
 
-        preg_match_all('/item:(\d+)/i', $validated['text'], $matches);
+        $text = $validated['text'];
+
+        preg_match_all('/^\s*([a-z_0-9]+)\s*=.*?\bid=\s*(\d+)/im', $text, $simcMatches, PREG_SET_ORDER);
+
+        $simcBySlot = [];
+        foreach ($simcMatches as $match) {
+            $slot = self::SIMC_SLOT_MAP[strtolower($match[1])] ?? null;
+
+            if ($slot !== null) {
+                $simcBySlot[$slot->value] = (int) $match[2];
+            }
+        }
+
+        preg_match_all('/item:(\d+)/i', $text, $linkMatches);
         // Sem array_unique de propósito: um personagem pode ter o mesmo item
         // em dois slots (dois anéis iguais, duas armas iguais na
         // dual-empunhadura) — cada ocorrência do link deve poder preencher
         // seu próprio slot, e firstAvailableFor() já pula slot já usado.
-        $itemIds = array_map('intval', $matches[1]);
+        $linkItemIds = array_map('intval', $linkMatches[1]);
 
-        if ($itemIds === []) {
+        if ($simcBySlot === [] && $linkItemIds === []) {
             return back()->with('equipmentImport', ['equipped' => 0, 'ignored' => 0]);
         }
 
-        $items = Item::query()->whereIn('item_id', $itemIds)->get()->keyBy('item_id');
+        $allItemIds = array_unique([...array_values($simcBySlot), ...$linkItemIds]);
+        $items = Item::query()->whereIn('item_id', $allItemIds)->get()->keyBy('item_id');
 
-        $summary = DB::transaction(function () use ($character, $itemIds, $items) {
+        $summary = DB::transaction(function () use ($character, $simcBySlot, $linkItemIds, $items) {
             $equipped = 0;
             $ignored = 0;
             $filledSlots = [];
 
-            foreach ($itemIds as $itemId) {
+            foreach ($simcBySlot as $slotValue => $itemId) {
+                $item = $items->get($itemId);
+
+                if ($item === null) {
+                    $ignored++;
+
+                    continue;
+                }
+
+                $filledSlots[] = EquipmentSlot::from($slotValue);
+                $equipped++;
+
+                $character->items()->updateOrCreate(
+                    ['slot' => $slotValue],
+                    ['item_id' => $item->id],
+                );
+            }
+
+            foreach ($linkItemIds as $itemId) {
                 $item = $items->get($itemId);
 
                 $slot = $item ? EquipmentSlot::firstAvailableFor($item->slot, $filledSlots) : null;
