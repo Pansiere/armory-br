@@ -20,6 +20,7 @@ class ItemResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'icon' => $this->icon,
+            'icon_url' => $this->iconUrl(),
             'quality' => $this->quality->value,
             'quality_label' => $this->quality->label(),
             'quality_color' => $this->quality->color(),

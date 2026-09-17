@@ -81,10 +81,24 @@ export default function ItemSearchInput({
                             <button
                                 type="button"
                                 onClick={() => onSelect(item)}
-                                className="block w-full truncate rounded px-2 py-1 text-left text-sm hover:bg-tavern-800"
-                                style={{ color: item.quality_color }}
+                                className="flex w-full items-center gap-2 truncate rounded px-2 py-1 text-left text-sm hover:bg-tavern-800"
                             >
-                                {item.name}
+                                {item.icon_url ? (
+                                    <img
+                                        src={item.icon_url}
+                                        alt=""
+                                        className="h-5 w-5 shrink-0 rounded-sm border"
+                                        style={{ borderColor: item.quality_color }}
+                                    />
+                                ) : (
+                                    <span
+                                        className="h-5 w-5 shrink-0 rounded-sm border border-dashed"
+                                        style={{ borderColor: item.quality_color }}
+                                    />
+                                )}
+                                <span className="truncate" style={{ color: item.quality_color }}>
+                                    {item.name}
+                                </span>
                             </button>
                         </li>
                     ))}

@@ -15,8 +15,8 @@ onde não existe uma Armory oficial: todo dado é cadastrado manualmente pelo us
 - Tela principal com as duas colunas de facção, contador em cada uma, e
   arrastar-e-soltar para reordenar — arrastar de uma coluna pra outra troca a
   facção do personagem. Responsivo de verdade (colunas empilham no celular).
-- **Boneco visual de equipamento**, com os 19 slots equipáveis do 3.3.5 e borda
-  colorida por qualidade do item (cinza/branco/verde/azul/roxo/laranja).
+- **Boneco visual de equipamento**, com os 19 slots equipáveis do 3.3.5, ícone
+  real de cada item e borda colorida por qualidade (cinza/branco/verde/azul/roxo/laranja).
 - **Import de equipamento colado**: cola o texto exportado por qualquer addon de
   WotLK e o boneco inteiro é montado de uma vez, reconhecendo os itens pelo link
   (`item:ID`) e resolvendo o slot pela própria base de dados.
@@ -60,10 +60,14 @@ Baixa `item_template.sql` do [AzerothCore-wotlk](https://github.com/azerothcore/
 nome, qualidade, slot, item level. **Só funciona com MySQL/MariaDB** (o dump é
 MySQL); precisa do client `mysql` disponível no PATH.
 
-Ícone ainda não vem populado: o AzerothCore não redistribui esse dado no
-GitHub porque ele vem extraído do cliente do jogo (licenciado pela Blizzard,
-não pode ser redistribuído livremente). Precisa de outra fonte — Wowhead é a
-candidata natural — ainda não implementada.
+Em seguida baixa o mapeamento item → ícone do
+[nexus-devs/wow-classic-items](https://github.com/nexus-devs/wow-classic-items)
+(MIT, também pinado) — o AzerothCore não redistribui esse dado (vem extraído
+do cliente do jogo, licenciado pela Blizzard), mas esse projeto já publica a
+relação pronta. Os ícones em si não são baixados nem commitados: a app só
+guarda o nome e monta a URL na hora, apontando pro CDN do Wowhead
+(`wow.zamimg.com`) — o mesmo hotlink que praticamente todo addon/site de WoW
+usa.
 
 ## Avisos legais
 

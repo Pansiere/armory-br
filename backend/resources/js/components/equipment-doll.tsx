@@ -53,9 +53,18 @@ export default function EquipmentDoll({
                         {slotOption.label}
                     </span>
                     {item ? (
-                        <span className="truncate" style={{ color: item.quality_color }}>
-                            {item.name}
-                        </span>
+                        <>
+                            {item.icon_url && (
+                                <img
+                                    src={item.icon_url}
+                                    alt=""
+                                    className="h-6 w-6 shrink-0 rounded-sm"
+                                />
+                            )}
+                            <span className="truncate" style={{ color: item.quality_color }}>
+                                {item.name}
+                            </span>
+                        </>
                     ) : (
                         <span className="text-parchment-300/50">Vazio</span>
                     )}

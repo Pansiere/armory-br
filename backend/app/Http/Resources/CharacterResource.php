@@ -49,6 +49,7 @@ class CharacterResource extends JsonResource
                         'id' => $characterItem->item->id,
                         'name' => $characterItem->item->name,
                         'icon' => $characterItem->item->icon,
+                        'icon_url' => $characterItem->item->iconUrl(),
                         'quality' => $characterItem->item->quality->value,
                         'quality_label' => $characterItem->item->quality->label(),
                         'quality_color' => $characterItem->item->quality->color(),
