@@ -26,7 +26,7 @@ export default function CharacterCard({ character }: { character: Character }) {
                         <span className="text-ink/60">
                             {' '}
                             ({character.level}
-                            {character.average_item_level
+                            {character.average_item_level != null
                                 ? ` · ilvl ${character.average_item_level}`
                                 : ''}
                             )

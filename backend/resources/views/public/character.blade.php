@@ -5,9 +5,11 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         @php
+            $averageItemLevel = $character->averageItemLevel();
+
             $summary = $character->class->label().' '.$character->faction->label();
             $summary .= $character->level ? ', nível '.$character->level : '';
-            $summary .= $character->averageItemLevel() ? ', ilvl '.$character->averageItemLevel() : '';
+            $summary .= $averageItemLevel !== null ? ', ilvl '.$averageItemLevel : '';
         @endphp
 
         <title>{{ $character->name }} — {{ config('app.name') }}</title>
@@ -54,9 +56,9 @@
                     </p>
                 @endif
 
-                @if ($character->averageItemLevel())
+                @if ($averageItemLevel !== null)
                     <p class="mt-2 text-sm text-parchment-300">
-                        Item level médio: {{ $character->averageItemLevel() }}
+                        Item level médio: {{ $averageItemLevel }}
                     </p>
                 @endif
             </div>
