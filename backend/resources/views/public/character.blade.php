@@ -32,7 +32,17 @@
                 Armory BR
             </a>
 
-            <div class="mt-8 rounded-lg border-l-4 bg-tavern-900 p-6" style="border-left-color: {{ $character->class->color() }}">
+            <div
+                class="mt-8 flex flex-col items-center gap-2 rounded-lg border-l-4 bg-tavern-900 p-6 text-center"
+                style="border-left-color: {{ $character->class->color() }}"
+            >
+                <div
+                    class="mb-2 flex h-24 w-24 items-center justify-center rounded-full font-heading text-4xl font-bold text-ink"
+                    style="background-color: {{ $character->class->color() }}; box-shadow: 0 0 28px -4px {{ $character->class->color() }}"
+                >
+                    {{ mb_strtoupper(mb_substr($character->name, 0, 1)) }}
+                </div>
+
                 <h1 class="font-heading text-3xl font-bold" style="color: {{ $character->class->color() }}">
                     {{ $character->name }}
                     @if ($character->level)
@@ -40,7 +50,7 @@
                     @endif
                 </h1>
 
-                <p class="mt-1 text-parchment-200">
+                <p class="text-parchment-200">
                     {{ $character->faction->label() }} · {{ $character->class->label() }}
                     @if ($character->spec)
                         · {{ $character->spec }}
@@ -51,13 +61,13 @@
                 </p>
 
                 @if ($character->professions->isNotEmpty())
-                    <p class="mt-2 text-sm text-parchment-300">
+                    <p class="text-sm text-parchment-300">
                         {{ $character->professions->map(fn ($profession) => $profession->name->label())->join(' · ') }}
                     </p>
                 @endif
 
                 @if ($averageItemLevel !== null)
-                    <p class="mt-2 text-sm text-parchment-300">
+                    <p class="text-sm text-parchment-300">
                         Item level médio: {{ $averageItemLevel }}
                     </p>
                 @endif
@@ -82,7 +92,8 @@
                                     <img
                                         src="{{ $characterItem->item->iconUrl() }}"
                                         alt=""
-                                        class="h-6 w-6 shrink-0 rounded-sm"
+                                        class="h-7 w-7 shrink-0 rounded-sm border"
+                                        style="border-color: {{ $characterItem->item->quality->color() }}"
                                     >
                                 @endif
                                 <span style="color: {{ $characterItem->item->quality->color() }}">

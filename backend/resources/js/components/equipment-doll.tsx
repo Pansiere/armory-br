@@ -58,7 +58,8 @@ export default function EquipmentDoll({
                                 <img
                                     src={item.icon_url}
                                     alt=""
-                                    className="h-6 w-6 shrink-0 rounded-sm"
+                                    className="h-7 w-7 shrink-0 rounded-sm border"
+                                    style={{ borderColor: item.quality_color }}
                                 />
                             )}
                             <span className="truncate" style={{ color: item.quality_color }}>
@@ -96,6 +97,34 @@ export default function EquipmentDoll({
     const right = slots.filter((slot) => slot.column === 'right');
     const bottom = slots.filter((slot) => slot.column === 'bottom');
 
+    const portrait = (
+        <div className="flex flex-col items-center gap-2 py-2 lg:w-40">
+            <div
+                className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full font-heading text-4xl font-bold text-ink"
+                style={{
+                    backgroundColor: character.class_color,
+                    boxShadow: `0 0 28px -4px ${character.class_color}`,
+                }}
+            >
+                {character.name.charAt(0).toUpperCase()}
+            </div>
+            <p
+                className={cn(
+                    'text-center font-heading text-lg font-bold',
+                    character.class_needs_text_outline && '[text-shadow:0_0_3px_rgba(0,0,0,0.7)]',
+                )}
+                style={{ color: character.class_color }}
+            >
+                {character.name}
+            </p>
+            <p className="text-center text-xs text-parchment-300">
+                {[character.race_label, character.class_label, character.spec]
+                    .filter(Boolean)
+                    .join(' · ')}
+            </p>
+        </div>
+    );
+
     return (
         <div>
             <h2 className="mb-3 flex items-baseline gap-2 font-heading text-lg font-semibold text-parchment-100">
@@ -107,8 +136,11 @@ export default function EquipmentDoll({
                 )}
             </h2>
 
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="mb-4 flex justify-center lg:hidden">{portrait}</div>
+
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[1fr_auto_1fr] lg:items-start lg:gap-4">
                 <div className="space-y-2">{left.map(renderSlot)}</div>
+                <div className="hidden lg:block">{portrait}</div>
                 <div className="space-y-2">{right.map(renderSlot)}</div>
             </div>
 
