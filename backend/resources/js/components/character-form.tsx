@@ -14,6 +14,7 @@ type CharacterFormData = {
     spec: string;
     race: string;
     level: string;
+    is_public: boolean;
     professions: ProfessionRow[];
 };
 
@@ -41,6 +42,7 @@ export default function CharacterForm({
             spec: character?.spec ?? '',
             race: character?.race ?? '',
             level: character?.level?.toString() ?? '',
+            is_public: character?.is_public ?? false,
             professions: (character?.professions ?? []).map((profession) => ({
                 name: profession.name,
                 skill_level: profession.skill_level?.toString() ?? '',
@@ -198,6 +200,35 @@ export default function CharacterForm({
                     />
                     <InputError message={errors.level} />
                 </div>
+            </div>
+
+            <div className="rounded-md border border-tavern-700 bg-tavern-900 p-4">
+                <label className="flex items-center gap-2 text-sm text-parchment-100">
+                    <input
+                        type="checkbox"
+                        checked={data.is_public}
+                        onChange={(e) => setData('is_public', e.target.checked)}
+                        className="h-4 w-4 rounded border-tavern-700 bg-tavern-950"
+                    />
+                    Tornar este personagem público
+                </label>
+                <p className="mt-1 text-xs text-parchment-300">
+                    Gera um link que qualquer pessoa pode ver, sem precisar de login. Fica
+                    desligado por padrão.
+                </p>
+
+                {character?.is_public && character.public_url && (
+                    <p className="mt-2 text-xs">
+                        <a
+                            href={character.public_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-medium text-parchment-100 underline"
+                        >
+                            {character.public_url}
+                        </a>
+                    </p>
+                )}
             </div>
 
             <div>

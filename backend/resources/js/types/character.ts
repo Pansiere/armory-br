@@ -65,6 +65,8 @@ export type Character = {
     race_label: string | null;
     level: number | null;
     position: number;
+    is_public: boolean;
+    public_url: string | null;
     professions: CharacterProfession[];
     /** Só vem preenchido quando a página carrega a relação (tela de edição). */
     equipment?: CharacterEquipment[];

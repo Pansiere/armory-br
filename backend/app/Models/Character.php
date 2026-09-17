@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 /**
  * @property int $id
@@ -24,6 +25,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $level
  * @property int $position
  * @property bool $is_public
+ * @property string $public_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -32,6 +34,13 @@ class Character extends Model
 {
     /** @use HasFactory<CharacterFactory> */
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        static::creating(function (Character $character) {
+            $character->public_token ??= Str::random(20);
+        });
+    }
 
     /**
      * @return BelongsTo<User, $this>
