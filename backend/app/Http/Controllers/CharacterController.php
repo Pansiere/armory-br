@@ -55,6 +55,7 @@ class CharacterController extends Controller
                 'spec' => $validated['spec'] ?? null,
                 'race' => $validated['race'] ?? null,
                 'level' => $validated['level'] ?? null,
+                'is_public' => $validated['is_public'] ?? false,
                 'position' => $nextPosition,
             ]);
 
@@ -88,6 +89,7 @@ class CharacterController extends Controller
                 'spec' => $validated['spec'] ?? null,
                 'race' => $validated['race'] ?? null,
                 'level' => $validated['level'] ?? null,
+                'is_public' => $validated['is_public'] ?? false,
             ]);
 
             $this->syncProfessions($character, $validated['professions'] ?? []);
@@ -191,6 +193,7 @@ class CharacterController extends Controller
                 }
             }],
             'level' => ['nullable', 'integer', 'min:1', 'max:80'],
+            'is_public' => ['nullable', 'boolean'],
             'professions' => ['nullable', 'array', function (string $attribute, mixed $value, \Closure $fail) {
                 $primaryCount = collect($value)
                     ->filter(fn (array $item) => Profession::tryFrom($item['name'] ?? '')?->isPrimary() === true)

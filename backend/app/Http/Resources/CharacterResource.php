@@ -29,6 +29,8 @@ class CharacterResource extends JsonResource
             'race_label' => $this->race?->label(),
             'level' => $this->level,
             'position' => $this->position,
+            'is_public' => $this->is_public,
+            'public_url' => $this->is_public ? route('characters.public', $this->public_token) : null,
             'professions' => $this->whenLoaded(
                 'professions',
                 fn () => $this->professions->map(fn ($profession) => [

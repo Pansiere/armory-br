@@ -3,6 +3,7 @@
 use App\Http\Controllers\CharacterController;
 use App\Http\Controllers\CharacterEquipmentController;
 use App\Http\Controllers\ItemController;
+use App\Http\Controllers\PublicCharacterController;
 use App\Http\Controllers\Settings\AccountController;
 use Illuminate\Support\Facades\Route;
 
@@ -11,6 +12,9 @@ Route::get('/', function () {
 });
 
 Route::inertia('/privacy-policy', 'privacy')->name('privacy');
+
+Route::get('p/{token}', [PublicCharacterController::class, 'show'])->name('characters.public');
+Route::get('p/{token}/preview.png', [PublicCharacterController::class, 'image'])->name('characters.public.image');
 
 Route::middleware('auth')->group(function () {
     Route::get('dashboard', [CharacterController::class, 'index'])->name('dashboard');
