@@ -81,7 +81,19 @@ class CharacterController extends Controller
 
         $validated = $this->validateCharacter($request);
 
-        DB::transaction(function () use ($character, $validated) {
+        DB::transaction(function () use ($character, $validated, $request) {
+            $position = $character->position;
+
+            // Trocar de facção pelo formulário (não pelo drag-and-drop, que
+            // já recalcula tudo em reorder()) manda o personagem pro fim da
+            // nova coluna — senão ele mantém a position da coluna antiga e
+            // pode colidir com quem já está na posição de destino.
+            if ($validated['faction'] !== $character->faction->value) {
+                $position = $request->user()->characters()
+                    ->where('faction', $validated['faction'])
+                    ->max('position') + 1;
+            }
+
             $character->update([
                 'name' => $validated['name'],
                 'faction' => $validated['faction'],
@@ -90,6 +102,7 @@ class CharacterController extends Controller
                 'race' => $validated['race'] ?? null,
                 'level' => $validated['level'] ?? null,
                 'is_public' => $validated['is_public'] ?? false,
+                'position' => $position,
             ]);
 
             $this->syncProfessions($character, $validated['professions'] ?? []);
@@ -196,7 +209,7 @@ class CharacterController extends Controller
             'is_public' => ['nullable', 'boolean'],
             'professions' => ['nullable', 'array', function (string $attribute, mixed $value, \Closure $fail) {
                 $primaryCount = collect($value)
-                    ->filter(fn (array $item) => Profession::tryFrom($item['name'] ?? '')?->isPrimary() === true)
+                    ->filter(fn (mixed $item) => is_array($item) && Profession::tryFrom($item['name'] ?? '')?->isPrimary() === true)
                     ->count();
 
                 if ($primaryCount > Profession::MAX_PRIMARY_PER_CHARACTER) {
