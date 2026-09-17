@@ -46,11 +46,25 @@ export type ItemSummary = {
     quality_label: string;
     quality_color: string;
     item_level: number;
+    gem_color: number | null;
+    socket_colors: number[];
+};
+
+export type SocketedGem = {
+    socket_position: number;
+    item: {
+        id: number;
+        name: string;
+        icon_url: string | null;
+        quality_color: string;
+        gem_color: number | null;
+    };
 };
 
 export type CharacterEquipment = {
     slot: string;
     item: ItemSummary;
+    gems: SocketedGem[];
 };
 
 export type SpecOption = {
