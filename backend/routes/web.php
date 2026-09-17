@@ -28,9 +28,9 @@ Route::middleware('auth')->group(function () {
     Route::put('characters/{character}', [CharacterController::class, 'update'])->name('characters.update');
     Route::delete('characters/{character}', [CharacterController::class, 'destroy'])->name('characters.destroy');
 
-    Route::post('characters/{character}/equipment/import', [CharacterEquipmentController::class, 'import'])->name('characters.equipment.import');
-    Route::put('characters/{character}/equipment/{slot}', [CharacterEquipmentController::class, 'update'])->name('characters.equipment.update');
-    Route::delete('characters/{character}/equipment/{slot}', [CharacterEquipmentController::class, 'destroy'])->name('characters.equipment.destroy');
+    Route::post('characters/{character}/equipment/{spec}/import', [CharacterEquipmentController::class, 'import'])->name('characters.equipment.import');
+    Route::put('characters/{character}/equipment/{spec}/{slot}', [CharacterEquipmentController::class, 'update'])->name('characters.equipment.update');
+    Route::delete('characters/{character}/equipment/{spec}/{slot}', [CharacterEquipmentController::class, 'destroy'])->name('characters.equipment.destroy');
 
     Route::get('items/search', [ItemController::class, 'search'])->name('items.search');
 

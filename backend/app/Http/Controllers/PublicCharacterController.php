@@ -40,7 +40,7 @@ class PublicCharacterController extends Controller
         return Character::query()
             ->where('public_token', $token)
             ->where('is_public', true)
-            ->with(['professions', 'items.item'])
+            ->with(['specs.items.item', 'professions'])
             ->firstOrFail();
     }
 }

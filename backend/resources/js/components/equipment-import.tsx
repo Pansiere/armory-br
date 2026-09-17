@@ -1,7 +1,13 @@
 import { router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
-export default function EquipmentImport({ characterId }: { characterId: number }) {
+export default function EquipmentImport({
+    characterId,
+    spec,
+}: {
+    characterId: number;
+    spec: string;
+}) {
     const [text, setText] = useState('');
     const [processing, setProcessing] = useState(false);
     const { equipmentImport } = usePage().props;
@@ -13,7 +19,7 @@ export default function EquipmentImport({ characterId }: { characterId: number }
 
         setProcessing(true);
         router.post(
-            `/characters/${characterId}/equipment/import`,
+            `/characters/${characterId}/equipment/${spec}/import`,
             { text },
             {
                 preserveScroll: true,

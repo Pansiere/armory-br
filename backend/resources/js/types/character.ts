@@ -53,6 +53,23 @@ export type CharacterEquipment = {
     item: ItemSummary;
 };
 
+export type SpecOption = {
+    value: string;
+    label: string;
+    class: string;
+    iconUrl: string;
+};
+
+export type CharacterSpecData = {
+    id: number;
+    value: string;
+    label: string;
+    icon_url: string;
+    position: 1 | 2;
+    average_item_level: number | null;
+    equipment: CharacterEquipment[];
+};
+
 export type Character = {
     id: number;
     name: string;
@@ -61,7 +78,6 @@ export type Character = {
     class_label: string;
     class_color: string;
     class_needs_text_outline: boolean;
-    spec: string | null;
     race: string | null;
     race_label: string | null;
     level: number | null;
@@ -70,12 +86,13 @@ export type Character = {
     public_url: string | null;
     average_item_level: number | null;
     professions: CharacterProfession[];
-    equipment: CharacterEquipment[];
+    specs: CharacterSpecData[];
 };
 
 export type CharacterFormOptions = {
     factions: FactionOption[];
     classes: CharacterClassOption[];
+    specs: SpecOption[];
     professions: ProfessionOption[];
     races: RaceOption[];
     equipmentSlots: EquipmentSlotOption[];

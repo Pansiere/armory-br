@@ -11,7 +11,7 @@ type CharacterFormData = {
     name: string;
     faction: string;
     class: string;
-    spec: string;
+    specs: string[];
     race: string;
     level: string;
     is_public: boolean;
@@ -39,7 +39,7 @@ export default function CharacterForm({
             name: character?.name ?? '',
             faction: character?.faction ?? options.factions[0]?.value ?? '',
             class: character?.class ?? options.classes[0]?.value ?? '',
-            spec: character?.spec ?? '',
+            specs: character?.specs.map((spec) => spec.value) ?? [],
             race: character?.race ?? '',
             level: character?.level?.toString() ?? '',
             is_public: character?.is_public ?? false,
@@ -58,6 +58,7 @@ export default function CharacterForm({
 
         transform((formData) => ({
             ...formData,
+            specs: formData.specs.filter((spec) => spec !== ''),
             race: formData.race === '' ? null : formData.race,
             level: formData.level === '' ? null : Number(formData.level),
             professions: formData.professions
@@ -76,6 +77,9 @@ export default function CharacterForm({
     };
 
     const racesForFaction = options.races.filter((race) => race.faction === data.faction);
+    const specsForClass = options.specs.filter((spec) => spec.class === data.class);
+    const specIcon = (value: string | undefined) =>
+        options.specs.find((spec) => spec.value === value)?.iconUrl;
 
     function updateFaction(faction: string) {
         const raceStillValid = options.races.some(
@@ -87,6 +91,28 @@ export default function CharacterForm({
             faction,
             race: raceStillValid ? data.race : '',
         });
+    }
+
+    function updateClass(newClass: string) {
+        const stillValid = data.specs.filter((spec) =>
+            options.specs.some((option) => option.value === spec && option.class === newClass),
+        );
+
+        setData({ ...data, class: newClass, specs: stillValid });
+    }
+
+    function updatePrimarySpec(value: string) {
+        // Se a spec 2 virou igual à nova spec 1, esvazia a 2 — não faz
+        // sentido escolher a mesma árvore duas vezes.
+        const secondary = data.specs[1] === value ? undefined : data.specs[1];
+        setData('specs', [value, ...(secondary ? [secondary] : [])]);
+    }
+
+    function updateSecondarySpec(value: string) {
+        const specs = [data.specs[0], value === '' ? undefined : value].filter(
+            (spec): spec is string => spec !== undefined,
+        );
+        setData('specs', specs);
     }
 
     function addProfession() {
@@ -144,7 +170,7 @@ export default function CharacterForm({
                     <select
                         id="class"
                         value={data.class}
-                        onChange={(e) => setData('class', e.target.value)}
+                        onChange={(e) => updateClass(e.target.value)}
                         className={selectClassName}
                     >
                         {options.classes.map((classOption) => (
@@ -157,15 +183,61 @@ export default function CharacterForm({
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="spec">Especialização</InputLabel>
-                    <TextInput
-                        id="spec"
-                        placeholder="Ex.: Arcano, Furtividade, Sombra..."
-                        value={data.spec}
-                        onChange={(e) => setData('spec', e.target.value)}
-                        className="mt-1"
-                    />
-                    <InputError message={errors.spec} />
+                    <InputLabel htmlFor="spec_1">Especialização</InputLabel>
+                    <div className="mt-1 flex items-center gap-2">
+                        {specIcon(data.specs[0]) && (
+                            <img
+                                src={specIcon(data.specs[0])}
+                                alt=""
+                                className="h-8 w-8 shrink-0 rounded-sm border border-tavern-700"
+                            />
+                        )}
+                        <select
+                            id="spec_1"
+                            value={data.specs[0] ?? ''}
+                            onChange={(e) => updatePrimarySpec(e.target.value)}
+                            className={selectClassName + ' mt-0'}
+                        >
+                            <option value="" disabled>
+                                Selecione...
+                            </option>
+                            {specsForClass.map((spec) => (
+                                <option key={spec.value} value={spec.value}>
+                                    {spec.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <InputError message={errors.specs} />
+                </div>
+
+                <div>
+                    <InputLabel htmlFor="spec_2">Segunda especialização (dual spec)</InputLabel>
+                    <div className="mt-1 flex items-center gap-2">
+                        {specIcon(data.specs[1]) && (
+                            <img
+                                src={specIcon(data.specs[1])}
+                                alt=""
+                                className="h-8 w-8 shrink-0 rounded-sm border border-tavern-700"
+                            />
+                        )}
+                        <select
+                            id="spec_2"
+                            value={data.specs[1] ?? ''}
+                            onChange={(e) => updateSecondarySpec(e.target.value)}
+                            className={selectClassName + ' mt-0'}
+                        >
+                            <option value="">Nenhuma</option>
+                            {specsForClass
+                                .filter((spec) => spec.value !== data.specs[0])
+                                .map((spec) => (
+                                    <option key={spec.value} value={spec.value}>
+                                        {spec.label}
+                                    </option>
+                                ))}
+                        </select>
+                    </div>
+                    <InputError message={errors.specs} />
                 </div>
 
                 <div>

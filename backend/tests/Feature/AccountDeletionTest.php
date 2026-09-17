@@ -2,12 +2,14 @@
 
 use App\Models\Character;
 use App\Models\CharacterProfession;
+use App\Models\CharacterSpec;
 use App\Models\User;
 
 it('apaga o usuário e todos os seus dados ao excluir a conta', function () {
     $user = User::factory()->create(['password' => 'senha-forte']);
     $character = Character::factory()->for($user)->create();
     $profession = CharacterProfession::factory()->for($character)->create();
+    $spec = $character->primarySpec();
 
     $this->actingAs($user)
         ->delete('/account', ['password' => 'senha-forte'])
@@ -15,7 +17,8 @@ it('apaga o usuário e todos os seus dados ao excluir a conta', function () {
 
     expect(User::find($user->id))->toBeNull()
         ->and(Character::find($character->id))->toBeNull()
-        ->and(CharacterProfession::find($profession->id))->toBeNull();
+        ->and(CharacterProfession::find($profession->id))->toBeNull()
+        ->and(CharacterSpec::find($spec->id))->toBeNull();
 
     $this->assertGuest();
 });

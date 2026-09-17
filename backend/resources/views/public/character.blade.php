@@ -50,13 +50,17 @@
                     @endif
                 </h1>
 
-                <p class="text-parchment-200">
-                    {{ $character->faction->label() }} · {{ $character->class->label() }}
-                    @if ($character->spec)
-                        · {{ $character->spec }}
-                    @endif
+                <p class="flex flex-wrap items-center justify-center gap-x-1 text-parchment-200">
+                    <span>{{ $character->faction->label() }} · {{ $character->class->label() }}</span>
+                    @foreach ($character->specs as $characterSpec)
+                        <span class="inline-flex items-center gap-1">
+                            <span>·</span>
+                            <img src="{{ $characterSpec->spec->iconUrl() }}" alt="" class="h-4 w-4 rounded-sm">
+                            <span>{{ $characterSpec->spec->label() }}</span>
+                        </span>
+                    @endforeach
                     @if ($character->race)
-                        · {{ $character->race->label() }}
+                        <span>· {{ $character->race->label() }}</span>
                     @endif
                 </p>
 
@@ -73,37 +77,50 @@
                 @endif
             </div>
 
-            @if ($character->items->isNotEmpty())
-                <div class="mt-6">
-                    <h2 class="mb-3 font-heading text-lg font-semibold text-parchment-100">
-                        Equipamento
-                    </h2>
+            @foreach ($character->specs as $characterSpec)
+                @if ($characterSpec->items->isNotEmpty())
+                    <div class="mt-6">
+                        <h2 class="mb-3 flex items-center gap-2 font-heading text-lg font-semibold text-parchment-100">
+                            Equipamento
+                            @if ($character->specs->count() > 1)
+                                <span class="inline-flex items-center gap-1 text-sm font-normal text-parchment-300">
+                                    <img src="{{ $characterSpec->spec->iconUrl() }}" alt="" class="h-4 w-4 rounded-sm">
+                                    {{ $characterSpec->spec->label() }}
+                                </span>
+                            @endif
+                            @if ($characterSpec->averageItemLevel() !== null)
+                                <span class="text-sm font-normal text-parchment-300">
+                                    ilvl médio {{ $characterSpec->averageItemLevel() }}
+                                </span>
+                            @endif
+                        </h2>
 
-                    <div class="grid gap-2 sm:grid-cols-2">
-                        @foreach ($character->items as $characterItem)
-                            <div
-                                class="flex items-center gap-2 rounded-md border-l-4 bg-tavern-900 px-3 py-2 text-sm"
-                                style="border-left-color: {{ $characterItem->item->quality->color() }}"
-                            >
-                                <span class="w-28 shrink-0 text-xs text-parchment-300">
-                                    {{ $characterItem->slot->label() }}
-                                </span>
-                                @if ($characterItem->item->iconUrl())
-                                    <img
-                                        src="{{ $characterItem->item->iconUrl() }}"
-                                        alt=""
-                                        class="h-7 w-7 shrink-0 rounded-sm border"
-                                        style="border-color: {{ $characterItem->item->quality->color() }}"
-                                    >
-                                @endif
-                                <span style="color: {{ $characterItem->item->quality->color() }}">
-                                    {{ $characterItem->item->name }}
-                                </span>
-                            </div>
-                        @endforeach
+                        <div class="grid gap-2 sm:grid-cols-2">
+                            @foreach ($characterSpec->items as $characterItem)
+                                <div
+                                    class="flex items-center gap-2 rounded-md border-l-4 bg-tavern-900 px-3 py-2 text-sm"
+                                    style="border-left-color: {{ $characterItem->item->quality->color() }}"
+                                >
+                                    <span class="w-28 shrink-0 text-xs text-parchment-300">
+                                        {{ $characterItem->slot->label() }}
+                                    </span>
+                                    @if ($characterItem->item->iconUrl())
+                                        <img
+                                            src="{{ $characterItem->item->iconUrl() }}"
+                                            alt=""
+                                            class="h-7 w-7 shrink-0 rounded-sm border"
+                                            style="border-color: {{ $characterItem->item->quality->color() }}"
+                                        >
+                                    @endif
+                                    <span style="color: {{ $characterItem->item->quality->color() }}">
+                                        {{ $characterItem->item->name }}
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
                     </div>
-                </div>
-            @endif
+                @endif
+            @endforeach
 
             <p class="mt-10 text-xs text-parchment-300">
                 World of Warcraft, seus nomes, ícones e arte pertencem à Blizzard
