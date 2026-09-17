@@ -8,10 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Um item equipado num slot do boneco visual (seção 7.1).
+ * Um item equipado num slot do boneco visual (seção 7.1), pertencente ao
+ * conjunto de equipamento de UMA spec do personagem (dual spec — seção 7.5).
  *
  * @property int $id
- * @property int $character_id
+ * @property int $character_spec_id
  * @property EquipmentSlot $slot
  * @property int $item_id
  */
@@ -19,11 +20,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CharacterItem extends Model
 {
     /**
-     * @return BelongsTo<Character, $this>
+     * @return BelongsTo<CharacterSpec, $this>
      */
-    public function character(): BelongsTo
+    public function characterSpec(): BelongsTo
     {
-        return $this->belongsTo(Character::class);
+        return $this->belongsTo(CharacterSpec::class);
     }
 
     /**

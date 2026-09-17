@@ -17,6 +17,9 @@ onde não existe uma Armory oficial: todo dado é cadastrado manualmente pelo us
   facção do personagem. Responsivo de verdade (colunas empilham no celular).
 - **Boneco visual de equipamento**, com os 19 slots equipáveis do 3.3.5, ícone
   real de cada item e borda colorida por qualidade (cinza/branco/verde/azul/roxo/laranja).
+- **Dual spec**: até 2 especializações por personagem (as 3 árvores de talento
+  de cada classe, com ícone), cada uma com o seu próprio conjunto de
+  equipamento — trocar de aba no boneco troca o gear junto, igual no jogo.
 - **Import de equipamento colado**: cola o texto exportado pelo addon
   [SimulationCraft](#importando-equipamento) (ou o link de qualquer item colado
   do chat) e o boneco inteiro é montado de uma vez — sem precisar cadastrar
@@ -47,11 +50,13 @@ nenhum suporte especial do servidor.
    e entre no jogo com o personagem que quer importar.
 2. Digite `/simc` na barra de chat. Uma janela abre com o perfil do
    personagem já selecionado — `Ctrl+C` pra copiar.
-3. Na Armory BR, cadastre o personagem (nome/raça/classe/nível) se ainda não
-   existir, entre na edição dele e cole o texto na caixa **"Colar
+3. Na Armory BR, cadastre o personagem (nome/raça/classe/spec(s)/nível) se
+   ainda não existir, entre na edição dele e cole o texto na caixa **"Colar
    equipamento"**. Cada peça é reconhecida pelo nome do slot que o SimC
    escreve (`head=`, `main_hand=`, etc.) e cai automaticamente no lugar
-   certo do boneco.
+   certo do boneco. Personagem com dual spec: a caixa de import sempre
+   preenche a aba de spec selecionada no momento — o SimC só exporta a build
+   ativa, então dá pra colar uma vez em cada aba se quiser montar as duas.
 
 ### Sem addon
 

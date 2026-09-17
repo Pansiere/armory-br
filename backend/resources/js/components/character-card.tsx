@@ -5,7 +5,10 @@ import { Link } from '@inertiajs/react';
 export default function CharacterCard({ character }: { character: Character }) {
     const initial = character.name.charAt(0).toUpperCase();
 
-    const weapon = character.equipment.find(
+    const primarySpec = character.specs[0];
+    const secondarySpec = character.specs[1];
+
+    const weapon = primarySpec?.equipment.find(
         (equipment) => equipment.slot === 'main_hand' || equipment.slot === 'ranged',
     )?.item;
 
@@ -69,14 +72,27 @@ export default function CharacterCard({ character }: { character: Character }) {
                 </p>
                 <p
                     className={cn(
-                        'truncate text-sm font-medium',
+                        'flex items-center gap-1 truncate text-sm font-medium',
                         character.class_needs_text_outline &&
                             '[text-shadow:0_0_3px_rgba(0,0,0,0.7)]',
                     )}
                     style={{ color: character.class_color }}
                 >
-                    {character.class_label}
-                    {character.spec ? ` · ${character.spec}` : ''}
+                    <span className="truncate">{character.class_label}</span>
+                    {primarySpec && (
+                        <span className="flex shrink-0 items-center gap-1">
+                            <span aria-hidden="true">·</span>
+                            <img src={primarySpec.icon_url} alt="" className="h-3.5 w-3.5 rounded-sm" />
+                            <span className="truncate">{primarySpec.label}</span>
+                        </span>
+                    )}
+                    {secondarySpec && (
+                        <span className="flex shrink-0 items-center gap-1">
+                            <span aria-hidden="true">/</span>
+                            <img src={secondarySpec.icon_url} alt="" className="h-3.5 w-3.5 rounded-sm" />
+                            <span className="truncate">{secondarySpec.label}</span>
+                        </span>
+                    )}
                 </p>
                 {character.professions.length > 0 && (
                     <p className="truncate text-xs text-ink/60">

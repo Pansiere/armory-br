@@ -3,10 +3,12 @@
 namespace App\Support;
 
 use App\Models\Character;
+use App\Models\CharacterItem;
 use App\Models\Item;
 use GdImage;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
@@ -50,11 +52,13 @@ class CharacterPreviewImage
 
         imagettftext($image, 52, 0, 60, 200, $classColor, $cinzel, $this->truncate($this->character->name, 22));
 
-        $averageItemLevel = $this->character->averageItemLevel();
+        $primarySpec = $this->character->primarySpec();
+        $averageItemLevel = $primarySpec?->averageItemLevel();
 
         $info = collect([
             $this->character->faction->label(),
             $this->character->class->label(),
+            $primarySpec?->spec->label(),
             $this->character->level ? 'Nível '.$this->character->level : null,
             $this->character->race?->label(),
             $averageItemLevel !== null ? 'ilvl '.$averageItemLevel : null,
@@ -89,13 +93,16 @@ class CharacterPreviewImage
      */
     private function drawEquipmentSummary(GdImage $image, string $sansFont, int $mutedColor): array
     {
-        if ($this->character->items->isEmpty()) {
+        $primarySpec = $this->character->primarySpec();
+        $items = $primarySpec ? $primarySpec->items : collect();
+
+        if ($items->isEmpty()) {
             return [];
         }
 
         imagettftext($image, 16, 0, 60, 360, $mutedColor, $sansFont, 'EQUIPAMENTO');
 
-        $icons = $this->fetchIcons();
+        $icons = $this->fetchIcons($items);
 
         $x = 60;
         $y = 380;
@@ -103,7 +110,7 @@ class CharacterPreviewImage
         $inset = 3;
         $gap = 10;
 
-        foreach ($this->character->items as $characterItem) {
+        foreach ($items as $characterItem) {
             $borderColor = $this->color($image, $characterItem->item->quality->color());
             imagefilledrectangle($image, $x, $y, $x + $size, $y + $size, $borderColor);
 
@@ -132,13 +139,14 @@ class CharacterPreviewImage
      * GdImage. Falhas individuais (rede, ícone corrompido) são ignoradas —
      * o item correspondente simplesmente não entra no array de retorno.
      *
+     * @param  Collection<int, CharacterItem>  $characterItems
      * @return array<string, GdImage>
      */
-    private function fetchIcons(): array
+    private function fetchIcons($characterItems): array
     {
-        $items = $this->character->items
+        $items = $characterItems
             ->map(fn ($characterItem) => $characterItem->item)
-            ->filter(fn (Item $item) => $item->icon !== null)
+            ->filter(fn (?Item $item) => $item !== null && $item->icon !== null)
             ->unique('icon')
             ->values();
 

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Enums\EquipmentSlot;
+use App\Enums\Spec;
 use App\Models\Character;
+use App\Models\CharacterSpec;
 use App\Models\Item;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,9 +15,11 @@ use Illuminate\Validation\Rule;
 
 class CharacterEquipmentController extends Controller
 {
-    public function update(Request $request, Character $character, string $slot): RedirectResponse
+    public function update(Request $request, Character $character, string $spec, string $slot): RedirectResponse
     {
         Gate::authorize('update', $character);
+
+        $characterSpec = $this->resolveSpec($character, $spec);
 
         $equipmentSlot = EquipmentSlot::tryFrom($slot);
         abort_if($equipmentSlot === null, 404);
@@ -33,7 +37,7 @@ class CharacterEquipmentController extends Controller
 
         abort_unless(in_array($item->slot->value, $acceptedSlots, true), 422, 'Esse item não cabe nesse slot.');
 
-        $character->items()->updateOrCreate(
+        $characterSpec->items()->updateOrCreate(
             ['slot' => $equipmentSlot->value],
             ['item_id' => $item->id],
         );
@@ -41,16 +45,30 @@ class CharacterEquipmentController extends Controller
         return back();
     }
 
-    public function destroy(Character $character, string $slot): RedirectResponse
+    public function destroy(Character $character, string $spec, string $slot): RedirectResponse
     {
         Gate::authorize('update', $character);
+
+        $characterSpec = $this->resolveSpec($character, $spec);
 
         $equipmentSlot = EquipmentSlot::tryFrom($slot);
         abort_if($equipmentSlot === null, 404);
 
-        $character->items()->where('slot', $equipmentSlot->value)->delete();
+        $characterSpec->items()->where('slot', $equipmentSlot->value)->delete();
 
         return back();
+    }
+
+    /**
+     * Acha a spec do personagem pelo valor do enum na URL — 404 se o
+     * personagem não tem essa spec (não pode equipar em spec que não é dele).
+     */
+    private function resolveSpec(Character $character, string $spec): CharacterSpec
+    {
+        $specEnum = Spec::tryFrom($spec);
+        abort_if($specEnum === null, 404);
+
+        return $character->specs()->where('spec', $specEnum->value)->firstOrFail();
     }
 
     /**
@@ -104,9 +122,11 @@ class CharacterEquipmentController extends Controller
      *
      * Idempotente: colar de novo só atualiza os mesmos slots, nunca duplica.
      */
-    public function import(Request $request, Character $character): RedirectResponse
+    public function import(Request $request, Character $character, string $spec): RedirectResponse
     {
         Gate::authorize('update', $character);
+
+        $characterSpec = $this->resolveSpec($character, $spec);
 
         $validated = $request->validate([
             'text' => ['required', 'string', 'max:20000'],
@@ -139,7 +159,7 @@ class CharacterEquipmentController extends Controller
         $allItemIds = array_unique([...array_values($simcBySlot), ...$linkItemIds]);
         $items = Item::query()->whereIn('item_id', $allItemIds)->get()->keyBy('item_id');
 
-        $summary = DB::transaction(function () use ($character, $simcBySlot, $linkItemIds, $items) {
+        $summary = DB::transaction(function () use ($characterSpec, $simcBySlot, $linkItemIds, $items) {
             $equipped = 0;
             $ignored = 0;
             $filledSlots = [];
@@ -156,7 +176,7 @@ class CharacterEquipmentController extends Controller
                 $filledSlots[] = EquipmentSlot::from($slotValue);
                 $equipped++;
 
-                $character->items()->updateOrCreate(
+                $characterSpec->items()->updateOrCreate(
                     ['slot' => $slotValue],
                     ['item_id' => $item->id],
                 );
@@ -176,7 +196,7 @@ class CharacterEquipmentController extends Controller
                 $filledSlots[] = $slot;
                 $equipped++;
 
-                $character->items()->updateOrCreate(
+                $characterSpec->items()->updateOrCreate(
                     ['slot' => $slot->value],
                     ['item_id' => $item->id],
                 );

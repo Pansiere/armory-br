@@ -7,27 +7,38 @@ import { useState } from 'react';
 export default function EquipmentDoll({
     character,
     slots,
+    activeSpecIndex,
+    onSpecChange,
 }: {
     character: Character;
     slots: EquipmentSlotOption[];
+    activeSpecIndex: number;
+    onSpecChange: (index: number) => void;
 }) {
     const [activeSlot, setActiveSlot] = useState<string | null>(null);
 
+    const spec = character.specs[activeSpecIndex] ?? character.specs[0];
+
     const equipped = new Map(
-        (character.equipment ?? []).map((equipment) => [equipment.slot, equipment.item]),
+        (spec?.equipment ?? []).map((equipment) => [equipment.slot, equipment.item]),
     );
+
+    function switchSpec(index: number) {
+        onSpecChange(index);
+        setActiveSlot(null);
+    }
 
     function equip(slot: string, item: ItemSummary) {
         setActiveSlot(null);
         router.put(
-            `/characters/${character.id}/equipment/${slot}`,
+            `/characters/${character.id}/equipment/${spec.value}/${slot}`,
             { item_id: item.id },
             { preserveScroll: true, preserveState: true },
         );
     }
 
     function unequip(slot: string) {
-        router.delete(`/characters/${character.id}/equipment/${slot}`, {
+        router.delete(`/characters/${character.id}/equipment/${spec.value}/${slot}`, {
             preserveScroll: true,
             preserveState: true,
         });
@@ -117,24 +128,52 @@ export default function EquipmentDoll({
             >
                 {character.name}
             </p>
-            <p className="text-center text-xs text-parchment-300">
-                {[character.race_label, character.class_label, character.spec]
-                    .filter(Boolean)
-                    .join(' · ')}
+            <p className="flex items-center justify-center gap-1 text-center text-xs text-parchment-300">
+                {[character.race_label, character.class_label].filter(Boolean).join(' · ')}
+                {spec && (
+                    <>
+                        <span aria-hidden="true">·</span>
+                        <img src={spec.icon_url} alt="" className="h-3.5 w-3.5 rounded-sm" />
+                        {spec.label}
+                    </>
+                )}
             </p>
         </div>
     );
 
     return (
         <div>
-            <h2 className="mb-3 flex items-baseline gap-2 font-heading text-lg font-semibold text-parchment-100">
-                Equipamento
-                {character.average_item_level != null && (
-                    <span className="font-sans text-sm font-normal text-parchment-300">
-                        item level médio: {character.average_item_level}
-                    </span>
+            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="flex items-baseline gap-2 font-heading text-lg font-semibold text-parchment-100">
+                    Equipamento
+                    {spec?.average_item_level != null && (
+                        <span className="font-sans text-sm font-normal text-parchment-300">
+                            item level médio: {spec.average_item_level}
+                        </span>
+                    )}
+                </h2>
+
+                {character.specs.length > 1 && (
+                    <div className="flex gap-1 rounded-md border border-tavern-700 bg-tavern-900 p-1">
+                        {character.specs.map((option, index) => (
+                            <button
+                                key={option.id}
+                                type="button"
+                                onClick={() => switchSpec(index)}
+                                className={cn(
+                                    'flex items-center gap-1.5 rounded px-2 py-1 text-sm font-medium transition',
+                                    index === activeSpecIndex
+                                        ? 'bg-tavern-700 text-parchment-100'
+                                        : 'text-parchment-300 hover:text-parchment-100',
+                                )}
+                            >
+                                <img src={option.icon_url} alt="" className="h-4 w-4 rounded-sm" />
+                                {option.label}
+                            </button>
+                        ))}
+                    </div>
                 )}
-            </h2>
+            </div>
 
             <div className="mb-4 flex justify-center lg:hidden">{portrait}</div>
 

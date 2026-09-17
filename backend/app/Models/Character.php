@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
@@ -20,7 +21,6 @@ use Illuminate\Support\Str;
  * @property string $name
  * @property Faction $faction
  * @property CharacterClass $class
- * @property string|null $spec
  * @property string|null $race
  * @property int|null $level
  * @property int $position
@@ -29,7 +29,7 @@ use Illuminate\Support\Str;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'faction', 'class', 'spec', 'race', 'level', 'position', 'is_public'])]
+#[Fillable(['name', 'faction', 'class', 'race', 'level', 'position', 'is_public'])]
 class Character extends Model
 {
     /** @use HasFactory<CharacterFactory> */
@@ -59,24 +59,43 @@ class Character extends Model
     }
 
     /**
-     * @return HasMany<CharacterItem, $this>
+     * As 1-2 specs do personagem (dual spec), ordenadas — posição 1 é a
+     * spec primária.
+     *
+     * @return HasMany<CharacterSpec, $this>
      */
-    public function items(): HasMany
+    public function specs(): HasMany
     {
-        return $this->hasMany(CharacterItem::class);
+        return $this->hasMany(CharacterSpec::class)->orderBy('position');
     }
 
     /**
-     * Item level médio dos itens equipados (seção 7.4). Null sem nenhum
-     * item equipado ainda.
+     * Todos os itens equipados do personagem, somando as duas specs (quando
+     * há dual spec) — passa por character_specs porque character_items não
+     * tem mais character_id direto (redundante com character_spec_id desde
+     * o dual spec). Pra pegar o equipamento de UMA spec específica, use
+     * `CharacterSpec::items()`.
+     *
+     * @return HasManyThrough<CharacterItem, CharacterSpec, $this>
+     */
+    public function items(): HasManyThrough
+    {
+        return $this->hasManyThrough(CharacterItem::class, CharacterSpec::class);
+    }
+
+    public function primarySpec(): ?CharacterSpec
+    {
+        return $this->specs->firstWhere('position', 1);
+    }
+
+    /**
+     * Item level médio da spec primária (seção 7.4) — é o número mostrado na
+     * vitrine. Cada spec tem o seu próprio (ver `CharacterSpec::averageItemLevel()`),
+     * já que dual spec pode ter dois conjuntos de equipamento bem diferentes.
      */
     public function averageItemLevel(): ?int
     {
-        if ($this->items->isEmpty()) {
-            return null;
-        }
-
-        return (int) round($this->items->avg(fn (CharacterItem $characterItem) => $characterItem->item->item_level));
+        return $this->primarySpec()?->averageItemLevel();
     }
 
     /**

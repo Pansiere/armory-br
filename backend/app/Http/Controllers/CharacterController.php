@@ -7,6 +7,7 @@ use App\Enums\EquipmentSlot;
 use App\Enums\Faction;
 use App\Enums\Profession;
 use App\Enums\Race;
+use App\Enums\Spec;
 use App\Http\Resources\CharacterResource;
 use App\Models\Character;
 use Illuminate\Http\RedirectResponse;
@@ -23,7 +24,7 @@ class CharacterController extends Controller
     {
         $characters = $request->user()
             ->characters()
-            ->with(['professions', 'items.item'])
+            ->with(['specs.items.item', 'professions'])
             ->orderBy('position')
             ->get()
             ->groupBy(fn (Character $character) => $character->faction->value);
@@ -52,13 +53,13 @@ class CharacterController extends Controller
                 'name' => $validated['name'],
                 'faction' => $validated['faction'],
                 'class' => $validated['class'],
-                'spec' => $validated['spec'] ?? null,
                 'race' => $validated['race'] ?? null,
                 'level' => $validated['level'] ?? null,
                 'is_public' => $validated['is_public'] ?? false,
                 'position' => $nextPosition,
             ]);
 
+            $this->syncSpecs($character, $validated['specs']);
             $this->syncProfessions($character, $validated['professions'] ?? []);
         });
 
@@ -71,7 +72,7 @@ class CharacterController extends Controller
 
         return Inertia::render('characters/edit', [
             ...$this->formOptions(),
-            'character' => new CharacterResource($character->load(['professions', 'items.item'])),
+            'character' => new CharacterResource($character->load(['specs.items.item', 'professions'])),
         ]);
     }
 
@@ -98,13 +99,13 @@ class CharacterController extends Controller
                 'name' => $validated['name'],
                 'faction' => $validated['faction'],
                 'class' => $validated['class'],
-                'spec' => $validated['spec'] ?? null,
                 'race' => $validated['race'] ?? null,
                 'level' => $validated['level'] ?? null,
                 'is_public' => $validated['is_public'] ?? false,
                 'position' => $position,
             ]);
 
+            $this->syncSpecs($character, $validated['specs']);
             $this->syncProfessions($character, $validated['professions'] ?? []);
         });
 
@@ -169,6 +170,12 @@ class CharacterController extends Controller
                 'color' => $class->color(),
                 'needsTextOutline' => $class->needsTextOutline(),
             ]),
+            'specs' => collect(Spec::cases())->map(fn (Spec $spec) => [
+                'value' => $spec->value,
+                'label' => $spec->label(),
+                'class' => $spec->characterClass()->value,
+                'iconUrl' => $spec->iconUrl(),
+            ]),
             'professions' => collect(Profession::cases())->map(fn (Profession $profession) => [
                 'value' => $profession->value,
                 'label' => $profession->label(),
@@ -196,7 +203,15 @@ class CharacterController extends Controller
             'name' => ['required', 'string', 'max:100'],
             'faction' => ['required', new Enum(Faction::class)],
             'class' => ['required', new Enum(CharacterClass::class)],
-            'spec' => ['nullable', 'string', 'max:100'],
+            'specs' => ['required', 'array', 'min:1', 'max:2'],
+            'specs.*' => ['distinct', new Enum(Spec::class), function (string $attribute, mixed $value, \Closure $fail) use ($request) {
+                $spec = Spec::tryFrom($value);
+                $class = CharacterClass::tryFrom($request->input('class', ''));
+
+                if ($spec && $class && $spec->characterClass() !== $class) {
+                    $fail('Essa especialização não é dessa classe.');
+                }
+            }],
             'race' => ['nullable', new Enum(Race::class), function (string $attribute, mixed $value, \Closure $fail) use ($request) {
                 $race = Race::tryFrom($value ?? '');
                 $faction = Faction::tryFrom($request->input('faction', ''));
@@ -219,6 +234,37 @@ class CharacterController extends Controller
             'professions.*.name' => ['required', new Enum(Profession::class), 'distinct'],
             'professions.*.skill_level' => ['nullable', 'integer', 'min:0', 'max:'.Profession::MAX_SKILL_LEVEL],
         ]);
+    }
+
+    /**
+     * Sincroniza as 1-2 specs do personagem preservando a linha (e o
+     * equipamento que aponta pra ela via character_spec_id) quando a spec
+     * daquela posição não mudou. Só recria a linha — o que derruba o
+     * equipamento junto, via cascade — quando a spec do slot realmente troca
+     * ou é removida (faz sentido: gear de uma build que não existe mais
+     * nesse slot). Por isso não dá pra fazer como syncProfessions (apagar
+     * tudo e recriar): isso zeraria o equipamento a cada salvamento do
+     * formulário, mesmo sem trocar de spec.
+     *
+     * @param  array<int, string>  $specs
+     */
+    private function syncSpecs(Character $character, array $specs): void
+    {
+        $existingByPosition = $character->specs()->get()->keyBy('position');
+
+        foreach ($specs as $index => $spec) {
+            $position = $index + 1;
+            $current = $existingByPosition->get($position);
+
+            if ($current && $current->spec->value === $spec) {
+                continue;
+            }
+
+            $current?->delete();
+            $character->specs()->create(['spec' => $spec, 'position' => $position]);
+        }
+
+        $character->specs()->whereNotIn('position', range(1, count($specs)))->delete();
     }
 
     /**
