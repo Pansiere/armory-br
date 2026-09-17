@@ -1,3 +1,4 @@
+import EmblemIcon from '@/components/emblem-icon';
 import FactionColumn from '@/components/faction-column';
 import AppLayout from '@/layouts/app-layout';
 import type { Character } from '@/types/character';
@@ -96,25 +97,76 @@ export default function Dashboard({
         return () => instances.forEach((instance) => instance.destroy());
     }, [lists]);
 
+    const total = lists.alliance.length + lists.horde.length;
+    const itemLevels = [...lists.alliance, ...lists.horde]
+        .map((character) => character.average_item_level)
+        .filter((level): level is number => level != null);
+    const averageItemLevel =
+        itemLevels.length > 0
+            ? Math.round(itemLevels.reduce((sum, level) => sum + level, 0) / itemLevels.length)
+            : null;
+
+    const newCharacterButton = (
+        <Link
+            href="/characters/create"
+            className="group inline-flex shrink-0 items-center gap-2 rounded-md border border-parchment-300/30 bg-tavern-900 px-4 py-2 font-heading text-sm font-semibold tracking-wide text-parchment-100 shadow transition hover:border-parchment-300/60 hover:bg-tavern-800"
+        >
+            <span className="text-lg leading-none text-parchment-300 transition group-hover:text-parchment-100">
+                +
+            </span>
+            Novo personagem
+        </Link>
+    );
+
     return (
         <AppLayout>
             <Head title="Meus personagens" />
 
-            <div className="flex flex-col gap-6 md:flex-row">
-                <FactionColumn faction="alliance" characters={lists.alliance} listRef={allianceRef} />
-                <div className="h-px bg-tavern-700 md:hidden" />
-                <div className="hidden w-px bg-tavern-700 md:block" />
-                <FactionColumn faction="horde" characters={lists.horde} listRef={hordeRef} />
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h1 className="font-heading text-2xl font-bold text-parchment-100">
+                        Meus personagens
+                    </h1>
+                    <p className="mt-1 text-sm text-parchment-300">
+                        {total === 0
+                            ? 'Nenhum personagem cadastrado ainda.'
+                            : `${total} personagem${total === 1 ? '' : 's'}${
+                                  averageItemLevel != null
+                                      ? ` · ilvl médio ${averageItemLevel}`
+                                      : ''
+                              }`}
+                    </p>
+                </div>
+
+                {total > 0 && newCharacterButton}
             </div>
 
-            <div className="mt-6 text-center">
-                <Link
-                    href="/characters/create"
-                    className="inline-block rounded-md bg-alliance px-4 py-2 font-medium text-white transition hover:bg-alliance-dim"
-                >
-                    + Novo personagem
-                </Link>
-            </div>
+            {total === 0 ? (
+                <div className="flex flex-col items-center gap-4 rounded-lg border border-dashed border-tavern-700 px-6 py-16 text-center">
+                    <EmblemIcon className="h-16 w-16 text-tavern-700" />
+                    <div>
+                        <p className="font-heading text-lg font-semibold text-parchment-100">
+                            Sua vitrine está vazia
+                        </p>
+                        <p className="mt-1 max-w-sm text-sm text-parchment-300">
+                            Cadastre seu primeiro personagem pra começar a montar o boneco de
+                            equipamento e organizar sua conta por facção.
+                        </p>
+                    </div>
+                    {newCharacterButton}
+                </div>
+            ) : (
+                <div className="flex flex-col gap-6 md:flex-row">
+                    <FactionColumn
+                        faction="alliance"
+                        characters={lists.alliance}
+                        listRef={allianceRef}
+                    />
+                    <div className="h-px bg-tavern-700 md:hidden" />
+                    <div className="hidden w-px bg-tavern-700 md:block" />
+                    <FactionColumn faction="horde" characters={lists.horde} listRef={hordeRef} />
+                </div>
+            )}
         </AppLayout>
     );
 }

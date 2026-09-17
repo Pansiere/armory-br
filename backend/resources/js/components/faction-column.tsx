@@ -38,7 +38,12 @@ export default function FactionColumn({
     return (
         <section className={cn('flex-1 rounded-lg border-t-4', meta.border, meta.wash)}>
             <header className="flex items-center justify-between px-4 py-3">
-                <h2 className={cn('font-heading text-lg font-bold', meta.text)}>{meta.label}</h2>
+                <h2 className={cn('flex items-center gap-2 font-heading text-lg font-bold', meta.text)}>
+                    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-current">
+                        <path d="M12 2 C8 2 5 3.4 5 5.6 L5 11 C5 16 8 19.6 12 21.5 C16 19.6 19 16 19 11 L19 5.6 C19 3.4 16 2 12 2 Z" />
+                    </svg>
+                    {meta.label}
+                </h2>
                 <span
                     className={cn(
                         'flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-sm font-semibold text-white',
