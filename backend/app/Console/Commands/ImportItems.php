@@ -79,7 +79,7 @@ class ImportItems extends Command
         $response = Http::timeout(120)->get($url);
         $response->throw();
 
-        $config = config('database.connections.'.config('database.default'));
+        $config = $this->connectionConfig();
 
         $result = Process::timeout(300)
             ->input($response->body())
@@ -90,9 +90,14 @@ class ImportItems extends Command
         }
     }
 
+    private function connectionConfig(): array
+    {
+        return config('database.connections.'.config('database.default'));
+    }
+
     private function writeMysqlOptionsFile(): string
     {
-        $config = config('database.connections.'.config('database.default'));
+        $config = $this->connectionConfig();
 
         $path = tempnam(sys_get_temp_dir(), 'armory-mysql-');
 
@@ -109,11 +114,16 @@ class ImportItems extends Command
         return $path;
     }
 
+    /**
+     * Upsert por item_id em vez de apagar e reinserir: uma vez que algum
+     * personagem tem algo equipado, character_items.item_id referencia o id
+     * (surrogate) da linha em items, e a FK é RESTRICT — um DELETE FROM
+     * items quebraria o comando (e reimportar precisa continuar funcionando
+     * depois que a base já está em uso de verdade).
+     */
     private function transform(): int
     {
         return DB::transaction(function () {
-            DB::statement('DELETE FROM items');
-
             DB::statement('
                 INSERT INTO items (item_id, name, icon, slot, quality, item_level, created_at, updated_at)
                 SELECT
@@ -127,6 +137,12 @@ class ImportItems extends Command
                     NOW()
                 FROM item_template t
                 WHERE t.name != \'\'
+                ON DUPLICATE KEY UPDATE
+                    name = VALUES(name),
+                    slot = VALUES(slot),
+                    quality = VALUES(quality),
+                    item_level = VALUES(item_level),
+                    updated_at = VALUES(updated_at)
             ');
 
             return DB::table('items')->count();
@@ -155,11 +171,18 @@ class ImportItems extends Command
         try {
             $icons->chunk(1000)->each(fn ($chunk) => DB::table('item_icons')->insert($chunk->all()));
 
-            return DB::update('
+            DB::update('
                 UPDATE items
                 INNER JOIN item_icons ON item_icons.item_id = items.item_id
                 SET items.icon = item_icons.icon
             ');
+
+            // Conta quantos casaram, não quantos o UPDATE de fato mudou —
+            // reimportar sem nada novo deixa o valor igual ao que já tinha,
+            // e o MySQL só reporta linha "changed", não "matched".
+            return DB::table('items')
+                ->join('item_icons', 'item_icons.item_id', '=', 'items.item_id')
+                ->count();
         } finally {
             DB::unprepared('DROP TEMPORARY TABLE IF EXISTS item_icons');
         }

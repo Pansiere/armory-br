@@ -22,7 +22,7 @@ export default function CharacterCard({ character }: { character: Character }) {
             <div className="min-w-0">
                 <p className="truncate font-medium">
                     {character.name}
-                    {character.level ? (
+                    {character.level != null ? (
                         <span className="text-ink/60">
                             {' '}
                             ({character.level}
