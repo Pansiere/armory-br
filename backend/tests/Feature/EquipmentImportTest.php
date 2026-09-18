@@ -129,6 +129,56 @@ it('monta o boneco a partir de um export do WowSims Exporter (JSON, itens como a
     expect($character->items()->where('slot', 'neck')->first()->item_id)->toBe($neck->id);
 });
 
+it('encaixa as gemas do campo gems= do perfil SimC nos sockets certos, na ordem', function () {
+    $user = User::factory()->create();
+    $character = Character::factory()->for($user)->create();
+    $spec = $character->primarySpec()->spec->value;
+
+    // Socket 1 meta (1), socket 2 vermelho (2) — mesma convenção do GemSocketTest.
+    $head = Item::create([
+        'item_id' => 501, 'name' => 'Elmo com socket', 'slot' => InventorySlot::Head,
+        'quality' => ItemQuality::Epic, 'item_level' => 200,
+        'socket_color_1' => 1, 'socket_color_2' => 2,
+    ]);
+    $metaGem = Item::create(['item_id' => 502, 'name' => 'Gema meta', 'slot' => InventorySlot::NonEquip, 'quality' => ItemQuality::Rare, 'item_level' => 1, 'gem_color' => 1]);
+    $redGem = Item::create(['item_id' => 503, 'name' => 'Gema vermelha', 'slot' => InventorySlot::NonEquip, 'quality' => ItemQuality::Uncommon, 'item_level' => 1, 'gem_color' => 2]);
+
+    $profile = "head=elmo_com_socket,id={$head->item_id},gems={$metaGem->item_id}/{$redGem->item_id}";
+
+    $this->actingAs($user)
+        ->post("/characters/{$character->id}/equipment/{$spec}/import", ['text' => $profile])
+        ->assertRedirect();
+
+    $characterItem = $character->items()->where('slot', 'head')->first();
+    expect($characterItem->gems)->toHaveCount(2);
+    expect($characterItem->gems->firstWhere('socket_position', 1)->item_id)->toBe($metaGem->id);
+    expect($characterItem->gems->firstWhere('socket_position', 2)->item_id)->toBe($redGem->id);
+});
+
+it('ignora silenciosamente uma gema do import cuja cor não combina com o socket', function () {
+    $user = User::factory()->create();
+    $character = Character::factory()->for($user)->create();
+    $spec = $character->primarySpec()->spec->value;
+
+    // Socket único, vermelho (2).
+    $head = Item::create([
+        'item_id' => 504, 'name' => 'Elmo com socket vermelho', 'slot' => InventorySlot::Head,
+        'quality' => ItemQuality::Epic, 'item_level' => 200, 'socket_color_1' => 2,
+    ]);
+    $blueGem = Item::create(['item_id' => 505, 'name' => 'Gema azul', 'slot' => InventorySlot::NonEquip, 'quality' => ItemQuality::Uncommon, 'item_level' => 1, 'gem_color' => 8]);
+
+    $profile = "head=elmo,id={$head->item_id},gems={$blueGem->item_id}";
+
+    $this->actingAs($user)
+        ->post("/characters/{$character->id}/equipment/{$spec}/import", ['text' => $profile])
+        ->assertRedirect();
+
+    // O item equipa normalmente; só a gema incompatível é que não entra.
+    $characterItem = $character->items()->where('slot', 'head')->first();
+    expect($characterItem->item_id)->toBe($head->id);
+    expect($characterItem->gems)->toHaveCount(0);
+});
+
 it('não deixa importar equipamento numa spec que o personagem não tem', function () {
     $user = User::factory()->create();
     $character = Character::factory()->for($user)->create(['class' => 'warrior']);
