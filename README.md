@@ -66,9 +66,11 @@ existir em qualquer client 3.3.5a.
 3. Na Armory BR, cadastre o personagem (nome/raça/classe/spec(s)/nível) se
    ainda não existir, entre na edição dele e cole o texto na caixa **"Colar
    equipamento"**. Cada peça é reconhecida pelo nome do slot (`head=`,
-   `main_hand=`, etc.) e cai automaticamente no lugar certo do boneco.
-   Personagem com dual spec: a caixa de import sempre preenche a aba de spec
-   selecionada no momento — o addon só exporta o equipamento ativo, então dá
+   `main_hand=`, etc.) e cai automaticamente no lugar certo do boneco — **as
+   gemas engastadas também são importadas** junto com cada item, direto nos
+   sockets certos. Personagem com dual spec: a caixa de import sempre
+   preenche a aba de spec selecionada no momento — o addon só exporta o
+   equipamento ativo, então dá
    pra colar uma vez em cada aba se quiser montar as duas.
 
 A caixa de import também reconhece o formato de texto do SimC
