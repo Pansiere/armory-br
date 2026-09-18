@@ -14,7 +14,11 @@ export default function Edit({
     const activeSpec = character.specs[activeSpecIndex] ?? character.specs[0];
 
     function destroy() {
-        if (confirm(`Apagar ${character.name}? Essa ação não pode ser desfeita.`)) {
+        if (
+            confirm(
+                `Apagar ${character.name}? Essa ação não pode ser desfeita.`,
+            )
+        ) {
             router.delete(`/characters/${character.id}`);
         }
     }
@@ -24,16 +28,24 @@ export default function Edit({
             <Head title={`Editar ${character.name}`} />
 
             <div className="mb-6 flex items-center justify-between">
-                <h1 className="font-heading text-2xl font-bold text-parchment-100">
+                <h1 className="font-heading text-parchment-100 text-2xl font-bold">
                     Editar {character.name}
                 </h1>
-                <button
-                    type="button"
-                    onClick={destroy}
-                    className="text-sm font-medium text-horde hover:underline"
-                >
-                    Apagar personagem
-                </button>
+                <div className="flex items-center gap-4">
+                    <a
+                        href={`/characters/${character.id}/export`}
+                        className="text-parchment-100 text-sm font-medium underline"
+                    >
+                        Exportar (JSON)
+                    </a>
+                    <button
+                        type="button"
+                        onClick={destroy}
+                        className="text-horde text-sm font-medium hover:underline"
+                    >
+                        Apagar personagem
+                    </button>
+                </div>
             </div>
 
             <CharacterForm
@@ -46,7 +58,10 @@ export default function Edit({
 
             <div className="mt-10">
                 {activeSpec && (
-                    <EquipmentImport characterId={character.id} spec={activeSpec.value} />
+                    <EquipmentImport
+                        characterId={character.id}
+                        spec={activeSpec.value}
+                    />
                 )}
                 <EquipmentDoll
                     character={character}

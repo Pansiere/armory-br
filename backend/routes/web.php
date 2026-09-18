@@ -30,8 +30,10 @@ Route::middleware('auth')->group(function () {
 
     Route::get('characters/create', [CharacterController::class, 'create'])->name('characters.create');
     Route::post('characters', [CharacterController::class, 'store'])->name('characters.store');
+    Route::post('characters/import-json', [CharacterController::class, 'importJson'])->name('characters.import-json');
     Route::patch('characters/reorder', [CharacterController::class, 'reorder'])->name('characters.reorder');
     Route::get('characters/{character}/edit', [CharacterController::class, 'edit'])->name('characters.edit');
+    Route::get('characters/{character}/export', [CharacterController::class, 'export'])->name('characters.export');
     Route::put('characters/{character}', [CharacterController::class, 'update'])->name('characters.update');
     Route::delete('characters/{character}', [CharacterController::class, 'destroy'])->name('characters.destroy');
 
