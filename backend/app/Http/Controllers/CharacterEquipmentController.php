@@ -179,18 +179,90 @@ class CharacterEquipmentController extends Controller
     ];
 
     /**
+     * O addon SimulationCraft oficial não roda em 3.3.5a (só declara
+     * suporte a Interface de retail moderno) — o WowSims Exporter
+     * (github.com/wowsims/exporter) é a alternativa mantida ativamente
+     * para esse client, mas exporta em JSON em vez do texto do SimC.
+     * `gear.items` é uma tabela Lua indexada pela POSIÇÃO do slot (não pelo
+     * nome), na ordem declarada em EquipmentSpec.lua do addon — daí esse
+     * mapa ser por posição, não por chave string como o SIMC_SLOT_MAP.
+     *
+     * @var array<int, EquipmentSlot>
+     */
+    private const WOWSIMS_GEAR_POSITION_MAP = [
+        1 => EquipmentSlot::Head,
+        2 => EquipmentSlot::Neck,
+        3 => EquipmentSlot::Shoulders,
+        4 => EquipmentSlot::Back,
+        5 => EquipmentSlot::Chest,
+        6 => EquipmentSlot::Wrists,
+        7 => EquipmentSlot::Hands,
+        8 => EquipmentSlot::Waist,
+        9 => EquipmentSlot::Legs,
+        10 => EquipmentSlot::Feet,
+        11 => EquipmentSlot::Ring1,
+        12 => EquipmentSlot::Ring2,
+        13 => EquipmentSlot::Trinket1,
+        14 => EquipmentSlot::Trinket2,
+        15 => EquipmentSlot::MainHand,
+        16 => EquipmentSlot::OffHand,
+        17 => EquipmentSlot::Ranged,
+    ];
+
+    /**
+     * Decodifica um export do addon WowSims Exporter (JSON) pra
+     * slot => item_id. Retorna [] se o texto colado não for esse formato.
+     *
+     * `gear.items` pode serializar como array 0-indexado (sem buracos) ou
+     * como objeto com chaves string 1..17 (quando algum slot está vazio) —
+     * a lib de JSON do addon decide isso pela forma da tabela Lua de
+     * origem, então tratamos os dois casos.
+     *
+     * @return array<string, int>
+     */
+    private function parseWowSimsExport(string $text): array
+    {
+        $decoded = json_decode($text, true);
+
+        if (! is_array($decoded) || ! is_array($decoded['gear']['items'] ?? null)) {
+            return [];
+        }
+
+        $items = $decoded['gear']['items'];
+        $isZeroIndexed = array_is_list($items);
+
+        $bySlot = [];
+        foreach ($items as $key => $itemData) {
+            if (! is_array($itemData) || ! isset($itemData['id'])) {
+                continue;
+            }
+
+            $position = $isZeroIndexed ? ((int) $key + 1) : (int) $key;
+            $slot = self::WOWSIMS_GEAR_POSITION_MAP[$position] ?? null;
+
+            if ($slot !== null) {
+                $bySlot[$slot->value] = (int) $itemData['id'];
+            }
+        }
+
+        return $bySlot;
+    }
+
+    /**
      * Monta o boneco inteiro a partir do texto que addons de WotLK exportam
-     * (seção 7.2). Reconhece dois formatos, sem exigir um addon específico:
+     * (seção 7.2). Reconhece três formatos, sem exigir um addon específico:
      *
      * 1. Perfil do SimulationCraft (comando `/simc` no jogo) — linhas tipo
-     *    `head=algum_item,id=12345,...`. Recomendado no README porque o
-     *    addon já roda em qualquer servidor (lê só a API do cliente) e o
-     *    nome do slot vem explícito na própria linha, então esse caminho é
-     *    resolvido primeiro e manda no slot.
-     * 2. Links de item crus (`item:ID`, o jeito universal do WoW representar
+     *    `head=algum_item,id=12345,...`. O nome do slot vem explícito na
+     *    própria linha, então esse caminho é resolvido primeiro e manda
+     *    no slot.
+     * 2. Export do addon WowSims Exporter (JSON) — ver parseWowSimsExport().
+     *    Único addon com porte real pra 3.3.5a hoje; o SimulationCraft
+     *    oficial não roda nesse client.
+     * 3. Links de item crus (`item:ID`, o jeito universal do WoW representar
      *    um item em texto — o que sobra ao colar do chat, de um shift-clique
      *    ou de qualquer outro addon). Preenche o primeiro slot do boneco que
-     *    aceita aquele tipo de item, pulando os que o passo 1 já ocupou.
+     *    aceita aquele tipo de item, pulando os que os passos 1-2 já ocuparam.
      *
      * Idempotente: colar de novo só atualiza os mesmos slots, nunca duplica.
      */
@@ -216,6 +288,10 @@ class CharacterEquipmentController extends Controller
                 $simcBySlot[$slot->value] = (int) $match[2];
             }
         }
+
+        // Texto de perfil do SimC não é JSON válido, então isso só preenche
+        // algo quando o formato colado é realmente o do WowSims Exporter.
+        $simcBySlot = [...$simcBySlot, ...$this->parseWowSimsExport($text)];
 
         preg_match_all('/item:(\d+)/i', $text, $linkMatches);
         // Sem array_unique de propósito: um personagem pode ter o mesmo item
