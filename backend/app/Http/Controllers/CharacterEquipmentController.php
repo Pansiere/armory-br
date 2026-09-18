@@ -11,6 +11,7 @@ use App\Models\CharacterSpec;
 use App\Models\Item;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -109,7 +110,7 @@ class CharacterEquipmentController extends Controller
      * limpar as gemas antigas manualmente, já que o item novo pode nem ter
      * os mesmos sockets do antigo.
      */
-    private function equipItem(CharacterSpec $characterSpec, string $slotValue, Item $item): void
+    private function equipItem(CharacterSpec $characterSpec, string $slotValue, Item $item): CharacterItem
     {
         $existing = $characterSpec->items()->where('slot', $slotValue)->first();
 
@@ -117,7 +118,7 @@ class CharacterEquipmentController extends Controller
             $existing->gems()->delete();
         }
 
-        $characterSpec->items()->updateOrCreate(
+        return $characterSpec->items()->updateOrCreate(
             ['slot' => $slotValue],
             ['item_id' => $item->id],
         );
@@ -247,22 +248,97 @@ class CharacterEquipmentController extends Controller
     }
 
     /**
+     * Perfil do SimulationCraft, linha a linha (não preg_match_all na string
+     * inteira): precisamos associar um eventual `gems=68780/68793` ao `id=`
+     * da MESMA linha, e isso é ambíguo sem saber onde cada linha começa e
+     * termina.
+     *
+     * @return array{0: array<string, int>, 1: array<string, list<int>>} [slot => item_id, slot => [gem_item_id, ...]]
+     */
+    private function parseSimcProfile(string $text): array
+    {
+        $bySlot = [];
+        $gemsBySlot = [];
+
+        foreach (preg_split('/\r\n|\r|\n/', $text) ?: [] as $line) {
+            if (! preg_match('/^\s*([a-z_0-9]+)\s*=.*?\bid=\s*(\d+)/i', $line, $match)) {
+                continue;
+            }
+
+            $slot = self::SIMC_SLOT_MAP[strtolower($match[1])] ?? null;
+
+            if ($slot === null) {
+                continue;
+            }
+
+            $bySlot[$slot->value] = (int) $match[2];
+
+            if (preg_match('/\bgems=([\d\/]+)/i', $line, $gemsMatch)) {
+                $gemsBySlot[$slot->value] = array_map('intval', explode('/', $gemsMatch[1]));
+            }
+        }
+
+        return [$bySlot, $gemsBySlot];
+    }
+
+    /**
+     * Encaixa as gemas exportadas nos sockets do item, na ordem em que
+     * vieram (posição 1, 2, 3). Uma gema que não existe no banco, que não é
+     * gema de verdade, ou que não combina com a cor do socket é ignorada
+     * silenciosamente — igual a um item desconhecido no resto do import,
+     * isso não deve derrubar o restante da importação.
+     *
+     * @param  list<int>  $gemItemIds  IDs de item (não de linha do banco) das gemas, na ordem dos sockets.
+     * @param  Collection<int, Item>  $items  Itens já carregados, indexados por item_id.
+     */
+    private function attachGemsFromExport(CharacterItem $characterItem, array $gemItemIds, Collection $items): void
+    {
+        $socketColors = $characterItem->item->socketColors();
+
+        foreach ($gemItemIds as $index => $gemItemId) {
+            $position = $index + 1;
+            $gem = $items->get($gemItemId);
+            $socketColor = $socketColors[$position - 1] ?? null;
+
+            if ($gem === null || ! $gem->isGem() || $socketColor === null) {
+                continue;
+            }
+
+            if (! GemColor::gemFitsSocket($gem->gem_color, $socketColor)) {
+                continue;
+            }
+
+            $characterItem->gems()->updateOrCreate(
+                ['socket_position' => $position],
+                ['item_id' => $gem->id],
+            );
+        }
+    }
+
+    /**
      * Monta o boneco inteiro a partir do texto que addons de WotLK exportam
      * (seção 7.2). Reconhece três formatos, sem exigir um addon específico:
      *
-     * 1. Perfil do SimulationCraft (comando `/simc` no jogo) — linhas tipo
-     *    `head=algum_item,id=12345,...`. O nome do slot vem explícito na
-     *    própria linha, então esse caminho é resolvido primeiro e manda
-     *    no slot.
+     * 1. Perfil do SimulationCraft (comando `/simc` no jogo, ou o addon
+     *    próprio ArmoryBRExport — ver wotlk-addons) — linhas tipo
+     *    `head=algum_item,id=12345,gems=68780/68793`. O nome do slot vem
+     *    explícito na própria linha, então esse caminho é resolvido
+     *    primeiro e manda no slot. `gems=` é opcional e específico do
+     *    ArmoryBRExport: IDs de gema separados por `/`, na ordem dos
+     *    sockets do item.
      * 2. Export do addon WowSims Exporter (JSON) — ver parseWowSimsExport().
-     *    Único addon com porte real pra 3.3.5a hoje; o SimulationCraft
-     *    oficial não roda nesse client.
+     *    Não tem porte funcional pra 3.3.5a hoje (crasha ao carregar nesse
+     *    client), mas o parser continua aceitando o formato pro dia em que
+     *    isso mudar.
      * 3. Links de item crus (`item:ID`, o jeito universal do WoW representar
      *    um item em texto — o que sobra ao colar do chat, de um shift-clique
      *    ou de qualquer outro addon). Preenche o primeiro slot do boneco que
      *    aceita aquele tipo de item, pulando os que os passos 1-2 já ocuparam.
+     *    Não carrega gema (links crus não têm essa informação).
      *
-     * Idempotente: colar de novo só atualiza os mesmos slots, nunca duplica.
+     * Idempotente: colar de novo só atualiza os mesmos slots/sockets
+     * mencionados no texto, nunca duplica e nunca apaga gema de um slot que
+     * o texto colado não menciona.
      */
     public function import(Request $request, Character $character, string $spec): RedirectResponse
     {
@@ -276,16 +352,7 @@ class CharacterEquipmentController extends Controller
 
         $text = $validated['text'];
 
-        preg_match_all('/^\s*([a-z_0-9]+)\s*=.*?\bid=\s*(\d+)/im', $text, $simcMatches, PREG_SET_ORDER);
-
-        $simcBySlot = [];
-        foreach ($simcMatches as $match) {
-            $slot = self::SIMC_SLOT_MAP[strtolower($match[1])] ?? null;
-
-            if ($slot !== null) {
-                $simcBySlot[$slot->value] = (int) $match[2];
-            }
-        }
+        [$simcBySlot, $gemsBySlot] = $this->parseSimcProfile($text);
 
         // Texto de perfil do SimC não é JSON válido, então isso só preenche
         // algo quando o formato colado é realmente o do WowSims Exporter.
@@ -302,10 +369,11 @@ class CharacterEquipmentController extends Controller
             return back()->with('equipmentImport', ['equipped' => 0, 'ignored' => 0]);
         }
 
-        $allItemIds = array_unique([...array_values($simcBySlot), ...$linkItemIds]);
+        $allGemIds = array_merge(...array_values($gemsBySlot ?: [[]]));
+        $allItemIds = array_unique([...array_values($simcBySlot), ...$linkItemIds, ...$allGemIds]);
         $items = Item::query()->whereIn('item_id', $allItemIds)->get()->keyBy('item_id');
 
-        $summary = DB::transaction(function () use ($characterSpec, $simcBySlot, $linkItemIds, $items) {
+        $summary = DB::transaction(function () use ($characterSpec, $simcBySlot, $gemsBySlot, $linkItemIds, $items) {
             $equipped = 0;
             $ignored = 0;
             $filledSlots = [];
@@ -322,7 +390,11 @@ class CharacterEquipmentController extends Controller
                 $filledSlots[] = EquipmentSlot::from($slotValue);
                 $equipped++;
 
-                $this->equipItem($characterSpec, $slotValue, $item);
+                $characterItem = $this->equipItem($characterSpec, $slotValue, $item);
+
+                if (isset($gemsBySlot[$slotValue])) {
+                    $this->attachGemsFromExport($characterItem, $gemsBySlot[$slotValue], $items);
+                }
             }
 
             foreach ($linkItemIds as $itemId) {
