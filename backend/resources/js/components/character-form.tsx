@@ -18,6 +18,7 @@ type CharacterFormData = {
     level: string;
     is_public: boolean;
     professions: ProfessionRow[];
+    text: string;
 };
 
 const selectClassName =
@@ -49,7 +50,10 @@ export default function CharacterForm({
                 name: profession.name,
                 skill_level: profession.skill_level?.toString() ?? '',
             })),
+            text: '',
         });
+
+    const isCreating = method === 'post';
 
     const primaryCount = data.professions.filter(
         (row) =>
@@ -59,7 +63,7 @@ export default function CharacterForm({
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
-        transform((formData) => ({
+        transform(({ text, ...formData }) => ({
             ...formData,
             specs: formData.specs.filter((spec) => spec !== ''),
             race: formData.race === '' ? null : formData.race,
@@ -71,6 +75,9 @@ export default function CharacterForm({
                     skill_level:
                         row.skill_level === '' ? null : Number(row.skill_level),
                 })),
+            // `text` só existe na criação (issue #23) — na edição isso é
+            // outro formulário (EquipmentImport, na tela de edição).
+            ...(isCreating ? { text } : {}),
         }));
 
         if (method === 'put') {
@@ -155,6 +162,41 @@ export default function CharacterForm({
 
     return (
         <form onSubmit={submit} className="space-y-6">
+            {isCreating && (
+                <div className="border-tavern-700 bg-tavern-900 rounded-lg border p-4">
+                    <h3 className="font-heading text-parchment-100 text-sm font-semibold">
+                        Colar personagem (atalho)
+                    </h3>
+                    <p className="text-parchment-300 mt-1 text-xs">
+                        Tem o texto exportado pelo addon{' '}
+                        <strong className="text-parchment-100">
+                            ArmoryBRExport
+                        </strong>{' '}
+                        (ou{' '}
+                        <code className="bg-tavern-950 text-parchment-200 rounded px-1 py-0.5">
+                            /simc
+                        </code>
+                        , se um dia existir um port pra 3.3.5a)? Cole aqui e a
+                        gente já preenche nome, raça, nível, profissões e
+                        equipamento — só a classe e a especialização embaixo
+                        continuam sendo escolha manual, já que o texto não traz
+                        isso. Sem addon, funciona também com o link de cada item
+                        (shift-clique no jogo), só que aí sem
+                        nome/raça/nível/profissão. Totalmente opcional — dá pra
+                        cadastrar preenchendo os campos abaixo na mão, como
+                        sempre.
+                    </p>
+                    <textarea
+                        value={data.text}
+                        onChange={(e) => setData('text', e.target.value)}
+                        rows={3}
+                        placeholder="Cole aqui pra preencher automaticamente (opcional)..."
+                        className="border-tavern-700 bg-tavern-950 text-parchment-100 focus:border-parchment-300 mt-2 w-full rounded-md border px-3 py-2 text-sm focus:outline-none"
+                    />
+                    <InputError message={errors.text} />
+                </div>
+            )}
+
             <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                     <InputLabel htmlFor="name">Nome</InputLabel>

@@ -10,6 +10,7 @@ use App\Enums\Race;
 use App\Enums\Spec;
 use App\Http\Resources\CharacterResource;
 use App\Models\Character;
+use App\Support\CharacterImportParser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -41,11 +42,11 @@ class CharacterController extends Controller
         return Inertia::render('characters/create', $this->formOptions());
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, CharacterImportParser $parser): RedirectResponse
     {
-        $validated = $this->validateCharacter($request);
+        $validated = $this->validateCharacter($request, withImportText: true);
 
-        DB::transaction(function () use ($validated, $request) {
+        [$character, $summary] = DB::transaction(function () use ($validated, $request, $parser) {
             $nextPosition = $request->user()->characters()
                 ->where('faction', $validated['faction'])
                 ->max('position') + 1;
@@ -62,9 +63,35 @@ class CharacterController extends Controller
 
             $this->syncSpecs($character, $validated['specs']);
             $this->syncProfessions($character, $validated['professions'] ?? []);
+
+            $text = trim($validated['text'] ?? '');
+
+            if ($text === '') {
+                return [$character, null];
+            }
+
+            // Import na criação (issue #23) sempre mira a spec primária —
+            // o personagem acabou de nascer, não existe aba ativa ainda pra
+            // escolher (mesma regra do import na edição: o addon só exporta
+            // o equipamento ativo, então dual spec precisa de um segundo
+            // colar depois, na tela de edição).
+            $primarySpec = $character->specs()->where('position', 1)->firstOrFail();
+
+            $parser->applyMeta($character, $parser->parseMeta($text));
+            $summary = $parser->applyEquipment($primarySpec, $parser->parseEquipment($text));
+
+            return [$character, $summary];
         });
 
-        return redirect()->route('dashboard');
+        // Sem import: volta pra dashboard, igual sempre foi. Com import:
+        // manda pra edição — assim dá pra conferir/ajustar o que o texto
+        // colado trouxe (e é lá que o resumo "N itens equipados" já
+        // aparece) em vez de forçar um clique a mais.
+        if ($summary === null) {
+            return redirect()->route('dashboard');
+        }
+
+        return redirect()->route('characters.edit', $character)->with('equipmentImport', $summary);
     }
 
     public function edit(Character $character): Response
@@ -214,10 +241,11 @@ class CharacterController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function validateCharacter(Request $request): array
+    private function validateCharacter(Request $request, bool $withImportText = false): array
     {
         return $request->validate([
             'name' => ['required', 'string', 'max:100'],
+            ...($withImportText ? ['text' => ['nullable', 'string', 'max:20000']] : []),
             'faction' => ['required', new Enum(Faction::class)],
             'class' => ['required', new Enum(CharacterClass::class)],
             'specs' => ['required', 'array', 'min:1', 'max:2'],
