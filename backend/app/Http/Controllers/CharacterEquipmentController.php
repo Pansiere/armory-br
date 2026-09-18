@@ -213,10 +213,12 @@ class CharacterEquipmentController extends Controller
      * Decodifica um export do addon WowSims Exporter (JSON) pra
      * slot => item_id. Retorna [] se o texto colado não for esse formato.
      *
-     * `gear.items` pode serializar como array 0-indexado (sem buracos) ou
-     * como objeto com chaves string 1..17 (quando algum slot está vazio) —
-     * a lib de JSON do addon decide isso pela forma da tabela Lua de
-     * origem, então tratamos os dois casos.
+     * `gear.items` sempre serializa como array JSON, com `null` explícito
+     * nas posições sem item (confirmado no código-fonte de LibParse, a lib
+     * de JSON embutida no addon: IsArray() usa pairs(), não ipairs(), então
+     * uma tabela Lua só de chaves numéricas positivas vira array mesmo com
+     * buracos — WriteTable() escreve `null` pra cada posição intermediária
+     * ausente até o maior índice presente).
      *
      * @return array<string, int>
      */
@@ -228,17 +230,13 @@ class CharacterEquipmentController extends Controller
             return [];
         }
 
-        $items = $decoded['gear']['items'];
-        $isZeroIndexed = array_is_list($items);
-
         $bySlot = [];
-        foreach ($items as $key => $itemData) {
+        foreach ($decoded['gear']['items'] as $index => $itemData) {
             if (! is_array($itemData) || ! isset($itemData['id'])) {
                 continue;
             }
 
-            $position = $isZeroIndexed ? ((int) $key + 1) : (int) $key;
-            $slot = self::WOWSIMS_GEAR_POSITION_MAP[$position] ?? null;
+            $slot = self::WOWSIMS_GEAR_POSITION_MAP[(int) $index + 1] ?? null;
 
             if ($slot !== null) {
                 $bySlot[$slot->value] = (int) $itemData['id'];

@@ -69,7 +69,7 @@ it('prioriza o slot explícito do SimC sobre o palpite por tipo quando os dois f
     expect($character->items()->where('slot', 'ring_1')->first()->item_id)->toBe($ring->id);
 });
 
-it('monta o boneco a partir de um export do addon WowSims Exporter (JSON, itens como objeto com chaves esparsas)', function () {
+it('monta o boneco a partir de um export do addon WowSims Exporter (JSON, com slots vazios entre os preenchidos)', function () {
     $user = User::factory()->create();
     $character = Character::factory()->for($user)->create();
     $spec = $character->primarySpec()->spec->value;
@@ -77,18 +77,18 @@ it('monta o boneco a partir de um export do addon WowSims Exporter (JSON, itens 
     $head = Item::create(['item_id' => 401, 'name' => 'Elmo WowSims', 'slot' => InventorySlot::Head, 'quality' => ItemQuality::Epic, 'item_level' => 200]);
     $weapon = Item::create(['item_id' => 402, 'name' => 'Espada WowSims', 'slot' => InventorySlot::MainHand, 'quality' => ItemQuality::Rare, 'item_level' => 190]);
 
-    // Objeto com chaves string "1".."17": é assim que a lib de JSON do addon
-    // serializa quando o personagem tem algum slot vazio (a tabela Lua deixa
-    // de ser sequencial e a lib para de tratar como array).
+    // LibParse (a lib de JSON embutida no addon) sempre serializa gear.items
+    // como array, com `null` explícito em cada posição vazia entre o índice
+    // 0 e o maior índice preenchido — nunca como objeto com chaves esparsas.
+    // Índice 0 = posição 1 = Head; índice 14 = posição 15 = MainHand.
+    $gearItems = array_fill(0, 15, null);
+    $gearItems[0] = ['id' => $head->item_id, 'enchant' => 0];
+    $gearItems[14] = ['id' => $weapon->item_id, 'enchant' => 3789];
+
     $export = json_encode([
         'name' => 'Testchar',
         'class' => 'warrior',
-        'gear' => [
-            'items' => [
-                '1' => ['id' => $head->item_id, 'enchant' => 0],
-                '15' => ['id' => $weapon->item_id, 'enchant' => 3789],
-            ],
-        ],
+        'gear' => ['items' => $gearItems],
     ]);
 
     $this->actingAs($user)
