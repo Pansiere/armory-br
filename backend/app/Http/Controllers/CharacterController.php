@@ -11,11 +11,16 @@ use App\Enums\Spec;
 use App\Http\Resources\CharacterResource;
 use App\Models\Character;
 use App\Support\CharacterImportParser;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -92,6 +97,139 @@ class CharacterController extends Controller
         }
 
         return redirect()->route('characters.edit', $character)->with('equipmentImport', $summary);
+    }
+
+    /**
+     * Baixa o personagem inteiro como JSON (issue #18) — backup de
+     * verdade, já que apagar é permanente (LGPD, sem soft-delete), ou
+     * base pra duplicar um personagem. Usa o `item_id` do jogo (não o
+     * `id` interno da tabela `items`) pra ficar portável: a base de itens
+     * pode ser truncada e reimportada (`items:import`) e os ids internos
+     * mudam, mas o `item_id` do jogo é estável.
+     */
+    public function export(Character $character): JsonResponse
+    {
+        Gate::authorize('update', $character);
+
+        $character->load(['specs.items.item', 'specs.items.gems.item', 'professions']);
+
+        $data = [
+            'name' => $character->name,
+            'faction' => $character->faction->value,
+            'class' => $character->class->value,
+            'race' => $character->race?->value,
+            'level' => $character->level,
+            'professions' => $character->professions->map(fn ($profession) => [
+                'name' => $profession->name->value,
+                'skill_level' => $profession->skill_level,
+            ])->all(),
+            'specs' => $character->specs->map(fn ($characterSpec) => [
+                'spec' => $characterSpec->spec->value,
+                'position' => $characterSpec->position,
+                'equipment' => $characterSpec->items->map(fn ($characterItem) => [
+                    'slot' => $characterItem->slot->value,
+                    'item_id' => $characterItem->item->item_id,
+                    'gems' => $characterItem->gems->map(fn ($gem) => [
+                        'socket_position' => $gem->socket_position,
+                        'item_id' => $gem->item->item_id,
+                    ])->all(),
+                ])->all(),
+            ])->all(),
+        ];
+
+        $filename = Str::slug($character->name, '_').'-armory-br.json';
+
+        return response()->json($data, 200, [
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * Recria um personagem a partir do JSON exportado por export() —
+     * diferente do import de texto colado (issue #23), que nunca traz
+     * classe/specs porque nenhum addon exporta isso do jeito que a gente
+     * precisa. O JSON da própria Armory BR é o dump completo, então cobre
+     * 100% do personagem numa importação só.
+     */
+    public function importJson(Request $request): RedirectResponse
+    {
+        $request->validate([
+            // Tamanho de sobra pra um personagem com as 2 specs cheias de
+            // equipamento — o real gira em torno de poucos KB.
+            'file' => ['required', 'file', 'max:512'],
+        ]);
+
+        $decoded = json_decode((string) $request->file('file')->get(), true);
+
+        if (! is_array($decoded)) {
+            throw ValidationException::withMessages([
+                'file' => 'Esse arquivo não é um JSON válido.',
+            ]);
+        }
+
+        $validated = $this->validateCharacterExport($decoded);
+
+        $character = DB::transaction(function () use ($validated, $request) {
+            $nextPosition = $request->user()->characters()
+                ->where('faction', $validated['faction'])
+                ->max('position') + 1;
+
+            $character = $request->user()->characters()->create([
+                'name' => $validated['name'],
+                'faction' => $validated['faction'],
+                'class' => $validated['class'],
+                'race' => $validated['race'] ?? null,
+                'level' => $validated['level'] ?? null,
+                'position' => $nextPosition,
+            ]);
+
+            foreach ($validated['professions'] ?? [] as $profession) {
+                $character->professions()->create($profession);
+            }
+
+            $parser = app(CharacterImportParser::class);
+
+            foreach ($validated['specs'] as $specData) {
+                $characterSpec = $character->specs()->create([
+                    'spec' => $specData['spec'],
+                    'position' => $specData['position'],
+                ]);
+
+                $parser->applyEquipment($characterSpec, $this->equipmentFromExport($specData['equipment'] ?? []));
+            }
+
+            return $character;
+        });
+
+        return redirect()->route('characters.edit', $character);
+    }
+
+    /**
+     * Converte o array `equipment` do JSON exportado (uma lista, uma
+     * entrada por slot) pro formato que CharacterImportParser::applyEquipment()
+     * já sabe aplicar (mapas por slot) — reusa a mesma lógica testada de
+     * resolver item/gema e checar cor do socket, em vez de duplicar.
+     *
+     * @param  array<int, array{slot: string, item_id: int, gems?: array<int, array{socket_position: int, item_id: int}>}>  $equipment
+     * @return array{bySlot: array<string, int>, gemsBySlot: array<string, list<int>>, rawLinkItemIds: list<int>}
+     */
+    private function equipmentFromExport(array $equipment): array
+    {
+        $bySlot = [];
+        $gemsBySlot = [];
+
+        foreach ($equipment as $entry) {
+            $bySlot[$entry['slot']] = $entry['item_id'];
+
+            if (! empty($entry['gems'])) {
+                $gemsBySlot[$entry['slot']] = collect($entry['gems'])
+                    ->sortBy('socket_position')
+                    ->pluck('item_id')
+                    ->all();
+            }
+        }
+
+        return ['bySlot' => $bySlot, 'gemsBySlot' => $gemsBySlot, 'rawLinkItemIds' => []];
     }
 
     public function edit(Character $character): Response
@@ -279,6 +417,64 @@ class CharacterController extends Controller
             'professions.*.name' => ['required', new Enum(Profession::class), 'distinct'],
             'professions.*.skill_level' => ['nullable', 'integer', 'min:0', 'max:'.Profession::MAX_SKILL_LEVEL],
         ]);
+    }
+
+    /**
+     * Valida o JSON recebido em importJson() (já decodificado pra array)
+     * contra o formato de export() — entrada de arquivo controlada pelo
+     * usuário (pode vir de fora, com campo faltando ou tipo errado, ou até
+     * editado à mão), então valida cada campo/array aninhado
+     * explicitamente em vez de confiar na forma. `Validator::make` em vez
+     * de `$request->validate()` porque os dados não vêm dos campos do
+     * request — vêm de dentro do arquivo enviado.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function validateCharacterExport(array $data): array
+    {
+        return Validator::make($data, [
+            'name' => ['required', 'string', 'max:100'],
+            'faction' => ['required', new Enum(Faction::class)],
+            'class' => ['required', new Enum(CharacterClass::class)],
+            'race' => ['nullable', new Enum(Race::class), function (string $attribute, mixed $value, \Closure $fail) use ($data) {
+                $race = Race::tryFrom($value ?? '');
+                $faction = Faction::tryFrom($data['faction'] ?? '');
+
+                if ($race && $faction && $race->faction() !== $faction) {
+                    $fail('Essa raça não é dessa facção.');
+                }
+            }],
+            'level' => ['nullable', 'integer', 'min:1', 'max:80'],
+            'professions' => ['nullable', 'array'],
+            'professions.*.name' => ['required', new Enum(Profession::class), 'distinct'],
+            'professions.*.skill_level' => ['nullable', 'integer', 'min:0', 'max:'.Profession::MAX_SKILL_LEVEL],
+            'specs' => ['required', 'array', 'min:1', 'max:2'],
+            'specs.*.spec' => ['required', 'distinct', new Enum(Spec::class), function (string $attribute, mixed $value, \Closure $fail) use ($data) {
+                $spec = Spec::tryFrom($value);
+                $class = CharacterClass::tryFrom($data['class'] ?? '');
+
+                if ($spec && $class && $spec->characterClass() !== $class) {
+                    $fail('Essa especialização não é dessa classe.');
+                }
+            }],
+            'specs.*.position' => ['required', 'distinct', Rule::in([1, 2])],
+            'specs.*.equipment' => ['nullable', 'array'],
+            // Sem `distinct` aqui de propósito: `specs.*.equipment.*.slot`
+            // tem dois wildcards, e o `distinct` do Laravel nessa
+            // profundidade achata a checagem através de TODAS as specs em
+            // vez de isolar por spec — rejeitaria "cabeça" equipado nas
+            // duas specs do dual spec, que é válido e esperado (confirmado
+            // testando: sem isso o import de dual spec falhava a
+            // validação). Um slot duplicado dentro da MESMA spec já é
+            // inofensivo do jeito que equipmentFromExport() aplica (o
+            // último da lista simplesmente ganha o slot).
+            'specs.*.equipment.*.slot' => ['required', new Enum(EquipmentSlot::class)],
+            'specs.*.equipment.*.item_id' => ['required', 'integer'],
+            'specs.*.equipment.*.gems' => ['nullable', 'array', 'max:3'],
+            'specs.*.equipment.*.gems.*.socket_position' => ['required', 'integer', Rule::in([1, 2, 3])],
+            'specs.*.equipment.*.gems.*.item_id' => ['required', 'integer'],
+        ])->validate();
     }
 
     /**
