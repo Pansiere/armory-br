@@ -18,6 +18,13 @@ Route::middleware('throttle:30,1')->group(function () {
     Route::get('p/{token}/preview.png', [PublicCharacterController::class, 'image'])->name('characters.public.image');
 });
 
+// Fora do grupo auth de propósito: dado de item não é sensível. Usado hoje
+// só pelas páginas React (dashboard/edição) — o perfil público é Blade puro
+// sem JS (ver PublicCharacterController) e fica de fora por enquanto.
+Route::middleware('throttle:60,1')->group(function () {
+    Route::get('items/{item}/tooltip', [ItemController::class, 'tooltip'])->name('items.tooltip');
+});
+
 Route::middleware('auth')->group(function () {
     Route::get('dashboard', [CharacterController::class, 'index'])->name('dashboard');
 

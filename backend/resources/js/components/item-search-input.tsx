@@ -1,3 +1,4 @@
+import ItemTooltip from '@/components/item-tooltip';
 import type { ItemSummary } from '@/types/character';
 import { useEffect, useRef, useState } from 'react';
 
@@ -18,7 +19,9 @@ export default function ItemSearchInput({
     const inputRef = useRef<HTMLInputElement>(null);
 
     const targetParam =
-        'slot' in target ? `slot=${encodeURIComponent(target.slot)}` : `gem_color=${target.gemColor}`;
+        'slot' in target
+            ? `slot=${encodeURIComponent(target.slot)}`
+            : `gem_color=${target.gemColor}`;
 
     useEffect(() => {
         inputRef.current?.focus();
@@ -34,14 +37,22 @@ export default function ItemSearchInput({
         const controller = new AbortController();
 
         const timeout = setTimeout(() => {
-            fetch(`/items/search?q=${encodeURIComponent(query)}&${targetParam}`, {
-                headers: { Accept: 'application/json' },
-                signal: controller.signal,
-            })
+            fetch(
+                `/items/search?q=${encodeURIComponent(query)}&${targetParam}`,
+                {
+                    headers: { Accept: 'application/json' },
+                    signal: controller.signal,
+                },
+            )
                 .then((res) => res.json())
                 .then((body: ItemSummary[]) => setResults(body))
                 .catch((error: unknown) => {
-                    if (!(error instanceof DOMException && error.name === 'AbortError')) {
+                    if (
+                        !(
+                            error instanceof DOMException &&
+                            error.name === 'AbortError'
+                        )
+                    ) {
                         setResults([]);
                     }
                 })
@@ -55,7 +66,7 @@ export default function ItemSearchInput({
     }, [query, targetParam]);
 
     return (
-        <div className="absolute z-10 mt-1 w-64 rounded-md border border-tavern-700 bg-tavern-900 p-2 shadow-xl">
+        <div className="border-tavern-700 bg-tavern-900 absolute z-10 mt-1 w-64 rounded-md border p-2 shadow-xl">
             <div className="flex gap-1">
                 <input
                     ref={inputRef}
@@ -63,21 +74,25 @@ export default function ItemSearchInput({
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Buscar item..."
-                    className="w-full rounded border border-tavern-700 bg-tavern-950 px-2 py-1 text-sm text-parchment-100 focus:border-parchment-300 focus:outline-none"
+                    className="border-tavern-700 bg-tavern-950 text-parchment-100 focus:border-parchment-300 w-full rounded border px-2 py-1 text-sm focus:outline-none"
                 />
                 <button
                     type="button"
                     onClick={onCancel}
-                    className="rounded border border-tavern-700 px-2 text-xs text-parchment-300 hover:text-horde"
+                    className="border-tavern-700 text-parchment-300 hover:text-horde rounded border px-2 text-xs"
                 >
                     ×
                 </button>
             </div>
 
-            {loading && <p className="mt-1 text-xs text-parchment-300">Buscando...</p>}
+            {loading && (
+                <p className="text-parchment-300 mt-1 text-xs">Buscando...</p>
+            )}
 
             {!loading && query.trim().length >= 2 && results.length === 0 && (
-                <p className="mt-1 text-xs text-parchment-300">Nenhum item encontrado.</p>
+                <p className="text-parchment-300 mt-1 text-xs">
+                    Nenhum item encontrado.
+                </p>
             )}
 
             {results.length > 0 && (
@@ -87,24 +102,36 @@ export default function ItemSearchInput({
                             <button
                                 type="button"
                                 onClick={() => onSelect(item)}
-                                className="flex w-full items-center gap-2 truncate rounded px-2 py-1 text-left text-sm hover:bg-tavern-800"
+                                className="hover:bg-tavern-800 flex w-full items-center gap-2 truncate rounded px-2 py-1 text-left text-sm"
                             >
-                                {item.icon_url ? (
-                                    <img
-                                        src={item.icon_url}
-                                        alt=""
-                                        className="h-5 w-5 shrink-0 rounded-sm border"
-                                        style={{ borderColor: item.quality_color }}
-                                    />
-                                ) : (
+                                <ItemTooltip
+                                    itemId={item.id}
+                                    qualityColor={item.quality_color}
+                                >
+                                    {item.icon_url ? (
+                                        <img
+                                            src={item.icon_url}
+                                            alt=""
+                                            className="h-5 w-5 shrink-0 rounded-sm border"
+                                            style={{
+                                                borderColor: item.quality_color,
+                                            }}
+                                        />
+                                    ) : (
+                                        <span
+                                            className="h-5 w-5 shrink-0 rounded-sm border border-dashed"
+                                            style={{
+                                                borderColor: item.quality_color,
+                                            }}
+                                        />
+                                    )}
                                     <span
-                                        className="h-5 w-5 shrink-0 rounded-sm border border-dashed"
-                                        style={{ borderColor: item.quality_color }}
-                                    />
-                                )}
-                                <span className="truncate" style={{ color: item.quality_color }}>
-                                    {item.name}
-                                </span>
+                                        className="truncate"
+                                        style={{ color: item.quality_color }}
+                                    >
+                                        {item.name}
+                                    </span>
+                                </ItemTooltip>
                             </button>
                         </li>
                     ))}
