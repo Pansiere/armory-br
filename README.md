@@ -23,7 +23,7 @@ onde não existe uma Armory oficial: todo dado é cadastrado manualmente pelo us
   de cada classe, com ícone), cada uma com o seu próprio conjunto de
   equipamento — trocar de aba no boneco troca o gear junto, igual no jogo.
 - **Import de equipamento colado**: cola o texto exportado pelo addon
-  [WowSims Exporter](#importando-equipamento) (ou o link de qualquer item
+  [ArmoryBRExport](#importando-equipamento) (ou o link de qualquer item
   colado do chat) e o boneco inteiro é montado de uma vez — sem precisar
   cadastrar item por item.
 - **Perfil público opt-in**: cada personagem pode gerar um link (`/p/{token}`)
@@ -41,30 +41,35 @@ personagem, porque não há acesso ao banco do servidor pra puxar isso
 automaticamente. O que a importação resolve é a parte chata de configurar o
 **equipamento**, item por item.
 
-### Com o addon WowSims Exporter (recomendado)
+### Com o addon ArmoryBRExport (recomendado)
 
-O addon [SimulationCraft](https://github.com/simulationcraft/simc-addon)
-oficial **não roda em 3.3.5a** — a versão distribuída (CurseForge, Wago) só
-declara suporte a clientes de retail moderno, então não carrega nesse cliente
-de jeito nenhum. Quem tem porte real e mantido pra 3.3.5a é o
-[WowSims Exporter](https://github.com/wowsims/exporter), da própria equipe do
-WowSims — ele também só lê a API do cliente, sem depender de suporte especial
-do servidor.
+Nenhum addon de terceiro pronto funciona de verdade nesse client. O
+[SimulationCraft](https://github.com/simulationcraft/simc-addon) oficial só
+declara suporte a clientes de retail moderno. O
+[WowSims Exporter](https://github.com/wowsims/exporter) também não —
+apesar do nome sugerir suporte a "Wrath", ele foi escrito pra API que só
+existe em clients modernos da Blizzard (`WOW_PROJECT_ID`, `C_AddOns`,
+`C_Engraving`...), nenhuma delas presente no 3.3.5a original de 2010 que
+servidores privados usam — ele crasha com erro de Lua já no carregamento.
 
-1. Baixe o addon em [github.com/wowsims/exporter](https://github.com/wowsims/exporter)
-   (branch `master`, pasta `WowSimsExporter` — copie ela inteira, com esse
-   nome, pra `Interface/AddOns`) e entre no jogo com o personagem que quer
-   importar.
-2. Digite `/wse` na barra de chat (ou clique no ícone dele no minimapa). Uma
-   janela abre com os dados do personagem — clique em **"Generate Data"** e
-   depois `Ctrl+C` pra copiar o JSON.
+Por isso escrevi um addon próprio e minimalista pra isso,
+**ArmoryBRExport**: sem libs externas, só API nativa antiga garantida de
+existir em qualquer client 3.3.5a.
+
+1. Baixe a pasta `ArmoryBRExport` do repositório
+   [wotlk-addons](https://github.com/Pansiere/wotlk-addons/tree/main/ArmoryBRExport)
+   pra `Interface/AddOns` e entre no jogo com o personagem que quer importar
+   (se o addon acabou de ser instalado, é preciso deslogar até a tela de
+   seleção de personagem pelo menos uma vez antes de aparecer na lista).
+2. Digite `/armorybr` (ou `/abr`) na barra de chat. Abre uma janela com o
+   equipamento já selecionado — `Ctrl+C` pra copiar.
 3. Na Armory BR, cadastre o personagem (nome/raça/classe/spec(s)/nível) se
    ainda não existir, entre na edição dele e cole o texto na caixa **"Colar
-   equipamento"**. O import reconhece esse JSON automaticamente e encaixa
-   cada peça no lugar certo do boneco pela posição do slot. Personagem com
-   dual spec: a caixa de import sempre preenche a aba de spec selecionada no
-   momento — o addon só exporta a build ativa, então dá pra colar uma vez em
-   cada aba se quiser montar as duas.
+   equipamento"**. Cada peça é reconhecida pelo nome do slot (`head=`,
+   `main_hand=`, etc.) e cai automaticamente no lugar certo do boneco.
+   Personagem com dual spec: a caixa de import sempre preenche a aba de spec
+   selecionada no momento — o addon só exporta o equipamento ativo, então dá
+   pra colar uma vez em cada aba se quiser montar as duas.
 
 A caixa de import também reconhece o formato de texto do SimC
 (`head=algum_item,id=12345,...`), caso algum dia surja um port desse addon
