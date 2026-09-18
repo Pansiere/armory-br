@@ -69,6 +69,66 @@ it('prioriza o slot explícito do SimC sobre o palpite por tipo quando os dois f
     expect($character->items()->where('slot', 'ring_1')->first()->item_id)->toBe($ring->id);
 });
 
+it('monta o boneco a partir de um export do addon WowSims Exporter (JSON, com slots vazios entre os preenchidos)', function () {
+    $user = User::factory()->create();
+    $character = Character::factory()->for($user)->create();
+    $spec = $character->primarySpec()->spec->value;
+
+    $head = Item::create(['item_id' => 401, 'name' => 'Elmo WowSims', 'slot' => InventorySlot::Head, 'quality' => ItemQuality::Epic, 'item_level' => 200]);
+    $weapon = Item::create(['item_id' => 402, 'name' => 'Espada WowSims', 'slot' => InventorySlot::MainHand, 'quality' => ItemQuality::Rare, 'item_level' => 190]);
+
+    // LibParse (a lib de JSON embutida no addon) sempre serializa gear.items
+    // como array, com `null` explícito em cada posição vazia entre o índice
+    // 0 e o maior índice preenchido — nunca como objeto com chaves esparsas.
+    // Índice 0 = posição 1 = Head; índice 14 = posição 15 = MainHand.
+    $gearItems = array_fill(0, 15, null);
+    $gearItems[0] = ['id' => $head->item_id, 'enchant' => 0];
+    $gearItems[14] = ['id' => $weapon->item_id, 'enchant' => 3789];
+
+    $export = json_encode([
+        'name' => 'Testchar',
+        'class' => 'warrior',
+        'gear' => ['items' => $gearItems],
+    ]);
+
+    $this->actingAs($user)
+        ->post("/characters/{$character->id}/equipment/{$spec}/import", ['text' => $export])
+        ->assertRedirect();
+
+    expect($character->fresh()->items)->toHaveCount(2);
+    expect($character->items()->where('slot', 'head')->first()->item_id)->toBe($head->id);
+    expect($character->items()->where('slot', 'main_hand')->first()->item_id)->toBe($weapon->id);
+});
+
+it('monta o boneco a partir de um export do WowSims Exporter (JSON, itens como array sequencial sem buracos)', function () {
+    $user = User::factory()->create();
+    $character = Character::factory()->for($user)->create();
+    $spec = $character->primarySpec()->spec->value;
+
+    $head = Item::create(['item_id' => 403, 'name' => 'Elmo WowSims 2', 'slot' => InventorySlot::Head, 'quality' => ItemQuality::Epic, 'item_level' => 200]);
+    $neck = Item::create(['item_id' => 404, 'name' => 'Colar WowSims', 'slot' => InventorySlot::Neck, 'quality' => ItemQuality::Rare, 'item_level' => 180]);
+
+    // Array 0-indexado sem buraco nenhum: só acontece quando os slots
+    // preenchidos são consecutivos a partir da posição 1 (Head) — índice 0
+    // do array = posição 1 do itemLayout = Head, índice 1 = posição 2 = Neck.
+    $export = json_encode([
+        'gear' => [
+            'items' => [
+                ['id' => $head->item_id, 'enchant' => 0],
+                ['id' => $neck->item_id, 'enchant' => 0],
+            ],
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->post("/characters/{$character->id}/equipment/{$spec}/import", ['text' => $export])
+        ->assertRedirect();
+
+    expect($character->fresh()->items)->toHaveCount(2);
+    expect($character->items()->where('slot', 'head')->first()->item_id)->toBe($head->id);
+    expect($character->items()->where('slot', 'neck')->first()->item_id)->toBe($neck->id);
+});
+
 it('não deixa importar equipamento numa spec que o personagem não tem', function () {
     $user = User::factory()->create();
     $character = Character::factory()->for($user)->create(['class' => 'warrior']);
