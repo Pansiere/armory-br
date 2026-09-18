@@ -170,6 +170,7 @@ class CharacterController extends Controller
                 'label' => $class->label(),
                 'color' => $class->color(),
                 'needsTextOutline' => $class->needsTextOutline(),
+                'iconUrl' => $class->iconUrl(),
             ]),
             'specs' => collect(Spec::cases())->map(fn (Spec $spec) => [
                 'value' => $spec->value,
@@ -187,6 +188,7 @@ class CharacterController extends Controller
                 'value' => $race->value,
                 'label' => $race->label(),
                 'faction' => $race->faction()->value,
+                'iconUrl' => $race->iconUrl(),
             ]),
             'equipmentSlots' => $this->equipmentSlotOptions(),
         ];

@@ -10,6 +10,7 @@ export type CharacterClassOption = {
     label: string;
     color: string;
     needsTextOutline: boolean;
+    iconUrl: string;
 };
 
 export type ProfessionOption = {
@@ -23,6 +24,7 @@ export type RaceOption = {
     value: string;
     label: string;
     faction: Faction;
+    iconUrl: string;
 };
 
 export type CharacterProfession = {
@@ -94,8 +96,10 @@ export type Character = {
     class_label: string;
     class_color: string;
     class_needs_text_outline: boolean;
+    class_icon_url: string;
     race: string | null;
     race_label: string | null;
+    race_icon_url: string | null;
     level: number | null;
     position: number;
     is_public: boolean;

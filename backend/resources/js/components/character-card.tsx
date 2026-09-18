@@ -13,7 +13,6 @@ export default function CharacterCard({
     equipmentSlots: EquipmentSlotOption[];
 }) {
     const [expanded, setExpanded] = useState(false);
-    const initial = character.name.charAt(0).toUpperCase();
 
     const primarySpec = character.specs[0];
     const secondarySpec = character.specs[1];
@@ -38,13 +37,18 @@ export default function CharacterCard({
         >
             <span className="relative shrink-0">
                 <span
-                    className="font-heading text-ink flex h-10 w-10 items-center justify-center rounded-full text-lg font-bold"
+                    className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full"
                     style={{
                         backgroundColor: character.class_color,
                         boxShadow: `0 0 10px -2px ${character.class_color}`,
                     }}
                 >
-                    {initial}
+                    <img
+                        src={character.class_icon_url}
+                        alt=""
+                        title={character.class_label}
+                        className="h-full w-full object-cover"
+                    />
                 </span>
                 {weapon?.icon_url && (
                     <span
@@ -101,6 +105,17 @@ export default function CharacterCard({
                     )}
                     style={{ color: character.class_color }}
                 >
+                    {character.race_icon_url && (
+                        <span className="flex shrink-0 items-center gap-1">
+                            <img
+                                src={character.race_icon_url}
+                                alt=""
+                                className="h-3.5 w-3.5 rounded-sm"
+                            />
+                            <span>{character.race_label}</span>
+                            <span aria-hidden="true">·</span>
+                        </span>
+                    )}
                     <span className="truncate">{character.class_label}</span>
                     {primarySpec && (
                         <span className="flex shrink-0 items-center gap-1">

@@ -61,4 +61,30 @@ enum CharacterClass: string
             default => false,
         };
     }
+
+    /**
+     * Ícone padrão de classe (`classicon_*`) — único por classe, sem
+     * ambiguidade de gênero. Confirmado batendo direto no CDN
+     * (wow.zamimg.com), não chutado.
+     */
+    public function icon(): string
+    {
+        return match ($this) {
+            self::Warrior => 'classicon_warrior',
+            self::Paladin => 'classicon_paladin',
+            self::Hunter => 'classicon_hunter',
+            self::Rogue => 'classicon_rogue',
+            self::Priest => 'classicon_priest',
+            self::DeathKnight => 'classicon_deathknight',
+            self::Shaman => 'classicon_shaman',
+            self::Mage => 'classicon_mage',
+            self::Warlock => 'classicon_warlock',
+            self::Druid => 'classicon_druid',
+        };
+    }
+
+    public function iconUrl(): string
+    {
+        return "https://wow.zamimg.com/images/wow/icons/medium/{$this->icon()}.jpg";
+    }
 }

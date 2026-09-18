@@ -1,4 +1,5 @@
 import CharacterCard from '@/components/character-card';
+import FactionIcon from '@/components/faction-icon';
 import { cn } from '@/lib/utils';
 import type {
     Character,
@@ -56,13 +57,7 @@ export default function FactionColumn({
                         meta.text,
                     )}
                 >
-                    <svg
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                        className="h-4 w-4 fill-current"
-                    >
-                        <path d="M12 2 C8 2 5 3.4 5 5.6 L5 11 C5 16 8 19.6 12 21.5 C16 19.6 19 16 19 11 L19 5.6 C19 3.4 16 2 12 2 Z" />
-                    </svg>
+                    <FactionIcon className="h-4 w-4" />
                     {meta.label}
                 </h2>
                 <span

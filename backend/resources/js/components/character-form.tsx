@@ -1,6 +1,8 @@
+import FactionIcon from '@/components/faction-icon';
 import InputError from '@/components/input-error';
 import InputLabel from '@/components/input-label';
 import TextInput from '@/components/text-input';
+import { cn } from '@/lib/utils';
 import type { Character, CharacterFormOptions } from '@/types/character';
 import { useForm } from '@inertiajs/react';
 import type { FormEventHandler } from 'react';
@@ -89,6 +91,8 @@ export default function CharacterForm({
     const professionIcon = (value: string) =>
         options.professions.find((profession) => profession.value === value)
             ?.iconUrl;
+    const raceIcon = (value: string) =>
+        options.races.find((race) => race.value === value)?.iconUrl;
 
     function updateFaction(faction: string) {
         const raceStillValid = options.races.some(
@@ -166,38 +170,62 @@ export default function CharacterForm({
 
                 <div>
                     <InputLabel htmlFor="faction">Facção</InputLabel>
-                    <select
-                        id="faction"
-                        value={data.faction}
-                        onChange={(e) => updateFaction(e.target.value)}
-                        className={selectClassName}
-                    >
-                        {options.factions.map((faction) => (
-                            <option key={faction.value} value={faction.value}>
-                                {faction.label}
-                            </option>
-                        ))}
-                    </select>
+                    <div className="mt-1 flex items-center gap-2">
+                        <FactionIcon
+                            className={cn(
+                                'h-8 w-8 shrink-0',
+                                data.faction === 'horde'
+                                    ? 'text-horde'
+                                    : 'text-alliance',
+                            )}
+                        />
+                        <select
+                            id="faction"
+                            value={data.faction}
+                            onChange={(e) => updateFaction(e.target.value)}
+                            className={selectClassName + ' mt-0'}
+                        >
+                            {options.factions.map((faction) => (
+                                <option
+                                    key={faction.value}
+                                    value={faction.value}
+                                >
+                                    {faction.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                     <InputError message={errors.faction} />
                 </div>
 
                 <div>
                     <InputLabel htmlFor="class">Classe</InputLabel>
-                    <select
-                        id="class"
-                        value={data.class}
-                        onChange={(e) => updateClass(e.target.value)}
-                        className={selectClassName}
-                    >
-                        {options.classes.map((classOption) => (
-                            <option
-                                key={classOption.value}
-                                value={classOption.value}
-                            >
-                                {classOption.label}
-                            </option>
-                        ))}
-                    </select>
+                    <div className="mt-1 flex items-center gap-2">
+                        <img
+                            src={
+                                options.classes.find(
+                                    (option) => option.value === data.class,
+                                )?.iconUrl
+                            }
+                            alt=""
+                            className="border-tavern-700 h-8 w-8 shrink-0 rounded-sm border"
+                        />
+                        <select
+                            id="class"
+                            value={data.class}
+                            onChange={(e) => updateClass(e.target.value)}
+                            className={selectClassName + ' mt-0'}
+                        >
+                            {options.classes.map((classOption) => (
+                                <option
+                                    key={classOption.value}
+                                    value={classOption.value}
+                                >
+                                    {classOption.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                     <InputError message={errors.class} />
                 </div>
 
@@ -265,19 +293,28 @@ export default function CharacterForm({
 
                 <div>
                     <InputLabel htmlFor="race">Raça</InputLabel>
-                    <select
-                        id="race"
-                        value={data.race}
-                        onChange={(e) => setData('race', e.target.value)}
-                        className={selectClassName}
-                    >
-                        <option value="">Não informar</option>
-                        {racesForFaction.map((race) => (
-                            <option key={race.value} value={race.value}>
-                                {race.label}
-                            </option>
-                        ))}
-                    </select>
+                    <div className="mt-1 flex items-center gap-2">
+                        {raceIcon(data.race) && (
+                            <img
+                                src={raceIcon(data.race)}
+                                alt=""
+                                className="border-tavern-700 h-8 w-8 shrink-0 rounded-sm border"
+                            />
+                        )}
+                        <select
+                            id="race"
+                            value={data.race}
+                            onChange={(e) => setData('race', e.target.value)}
+                            className={selectClassName + ' mt-0'}
+                        >
+                            <option value="">Não informar</option>
+                            {racesForFaction.map((race) => (
+                                <option key={race.value} value={race.value}>
+                                    {race.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                     <InputError message={errors.race} />
                 </div>
 
