@@ -39,6 +39,7 @@ class CharacterResource extends JsonResource
                     'id' => $profession->id,
                     'name' => $profession->name->value,
                     'label' => $profession->name->label(),
+                    'icon_url' => $profession->name->iconUrl(),
                     'skill_level' => $profession->skill_level,
                 ]),
             ),

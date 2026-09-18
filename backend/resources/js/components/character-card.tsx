@@ -130,10 +130,20 @@ export default function CharacterCard({
                     )}
                 </p>
                 {character.professions.length > 0 && (
-                    <p className="text-ink/60 truncate text-xs">
-                        {character.professions
-                            .map((profession) => profession.label)
-                            .join(' · ')}
+                    <p className="text-ink/60 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+                        {character.professions.map((profession) => (
+                            <span
+                                key={profession.id}
+                                className="flex shrink-0 items-center gap-1"
+                            >
+                                <img
+                                    src={profession.icon_url}
+                                    alt=""
+                                    className="h-3.5 w-3.5 rounded-sm"
+                                />
+                                {profession.label}
+                            </span>
+                        ))}
                     </p>
                 )}
                 {primarySpec && (

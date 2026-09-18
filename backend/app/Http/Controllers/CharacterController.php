@@ -181,6 +181,7 @@ class CharacterController extends Controller
                 'value' => $profession->value,
                 'label' => $profession->label(),
                 'isPrimary' => $profession->isPrimary(),
+                'iconUrl' => $profession->iconUrl(),
             ]),
             'races' => collect(Race::cases())->map(fn (Race $race) => [
                 'value' => $race->value,

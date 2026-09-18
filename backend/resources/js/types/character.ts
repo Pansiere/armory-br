@@ -16,6 +16,7 @@ export type ProfessionOption = {
     value: string;
     label: string;
     isPrimary: boolean;
+    iconUrl: string;
 };
 
 export type RaceOption = {
@@ -28,6 +29,7 @@ export type CharacterProfession = {
     id: number;
     name: string;
     label: string;
+    icon_url: string;
     skill_level: number | null;
 };
 

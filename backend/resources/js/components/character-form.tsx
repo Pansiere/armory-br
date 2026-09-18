@@ -50,7 +50,8 @@ export default function CharacterForm({
         });
 
     const primaryCount = data.professions.filter(
-        (row) => options.professions.find((p) => p.value === row.name)?.isPrimary,
+        (row) =>
+            options.professions.find((p) => p.value === row.name)?.isPrimary,
     ).length;
 
     const submit: FormEventHandler = (e) => {
@@ -65,7 +66,8 @@ export default function CharacterForm({
                 .filter((row) => row.name !== '')
                 .map((row) => ({
                     name: row.name,
-                    skill_level: row.skill_level === '' ? null : Number(row.skill_level),
+                    skill_level:
+                        row.skill_level === '' ? null : Number(row.skill_level),
                 })),
         }));
 
@@ -76,10 +78,17 @@ export default function CharacterForm({
         }
     };
 
-    const racesForFaction = options.races.filter((race) => race.faction === data.faction);
-    const specsForClass = options.specs.filter((spec) => spec.class === data.class);
+    const racesForFaction = options.races.filter(
+        (race) => race.faction === data.faction,
+    );
+    const specsForClass = options.specs.filter(
+        (spec) => spec.class === data.class,
+    );
     const specIcon = (value: string | undefined) =>
         options.specs.find((spec) => spec.value === value)?.iconUrl;
+    const professionIcon = (value: string) =>
+        options.professions.find((profession) => profession.value === value)
+            ?.iconUrl;
 
     function updateFaction(faction: string) {
         const raceStillValid = options.races.some(
@@ -95,7 +104,9 @@ export default function CharacterForm({
 
     function updateClass(newClass: string) {
         const stillValid = data.specs.filter((spec) =>
-            options.specs.some((option) => option.value === spec && option.class === newClass),
+            options.specs.some(
+                (option) => option.value === spec && option.class === newClass,
+            ),
         );
 
         setData({ ...data, class: newClass, specs: stillValid });
@@ -116,7 +127,10 @@ export default function CharacterForm({
     }
 
     function addProfession() {
-        setData('professions', [...data.professions, { name: '', skill_level: '' }]);
+        setData('professions', [
+            ...data.professions,
+            { name: '', skill_level: '' },
+        ]);
     }
 
     function removeProfession(index: number) {
@@ -129,7 +143,9 @@ export default function CharacterForm({
     function updateProfession(index: number, patch: Partial<ProfessionRow>) {
         setData(
             'professions',
-            data.professions.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+            data.professions.map((row, i) =>
+                i === index ? { ...row, ...patch } : row,
+            ),
         );
     }
 
@@ -174,7 +190,10 @@ export default function CharacterForm({
                         className={selectClassName}
                     >
                         {options.classes.map((classOption) => (
-                            <option key={classOption.value} value={classOption.value}>
+                            <option
+                                key={classOption.value}
+                                value={classOption.value}
+                            >
                                 {classOption.label}
                             </option>
                         ))}
@@ -189,7 +208,7 @@ export default function CharacterForm({
                             <img
                                 src={specIcon(data.specs[0])}
                                 alt=""
-                                className="h-8 w-8 shrink-0 rounded-sm border border-tavern-700"
+                                className="border-tavern-700 h-8 w-8 shrink-0 rounded-sm border"
                             />
                         )}
                         <select
@@ -212,19 +231,23 @@ export default function CharacterForm({
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="spec_2">Segunda especialização (dual spec)</InputLabel>
+                    <InputLabel htmlFor="spec_2">
+                        Segunda especialização (dual spec)
+                    </InputLabel>
                     <div className="mt-1 flex items-center gap-2">
                         {specIcon(data.specs[1]) && (
                             <img
                                 src={specIcon(data.specs[1])}
                                 alt=""
-                                className="h-8 w-8 shrink-0 rounded-sm border border-tavern-700"
+                                className="border-tavern-700 h-8 w-8 shrink-0 rounded-sm border"
                             />
                         )}
                         <select
                             id="spec_2"
                             value={data.specs[1] ?? ''}
-                            onChange={(e) => updateSecondarySpec(e.target.value)}
+                            onChange={(e) =>
+                                updateSecondarySpec(e.target.value)
+                            }
                             className={selectClassName + ' mt-0'}
                         >
                             <option value="">Nenhuma</option>
@@ -274,19 +297,19 @@ export default function CharacterForm({
                 </div>
             </div>
 
-            <div className="rounded-md border border-tavern-700 bg-tavern-900 p-4">
-                <label className="flex items-center gap-2 text-sm text-parchment-100">
+            <div className="border-tavern-700 bg-tavern-900 rounded-md border p-4">
+                <label className="text-parchment-100 flex items-center gap-2 text-sm">
                     <input
                         type="checkbox"
                         checked={data.is_public}
                         onChange={(e) => setData('is_public', e.target.checked)}
-                        className="h-4 w-4 rounded border-tavern-700 bg-tavern-950"
+                        className="border-tavern-700 bg-tavern-950 h-4 w-4 rounded"
                     />
                     Tornar este personagem público
                 </label>
-                <p className="mt-1 text-xs text-parchment-300">
-                    Gera um link que qualquer pessoa pode ver, sem precisar de login. Fica
-                    desligado por padrão.
+                <p className="text-parchment-300 mt-1 text-xs">
+                    Gera um link que qualquer pessoa pode ver, sem precisar de
+                    login. Fica desligado por padrão.
                 </p>
 
                 {character?.is_public && character.public_url && (
@@ -295,7 +318,7 @@ export default function CharacterForm({
                             href={character.public_url}
                             target="_blank"
                             rel="noreferrer"
-                            className="font-medium text-parchment-100 underline"
+                            className="text-parchment-100 font-medium underline"
                         >
                             {character.public_url}
                         </a>
@@ -306,16 +329,29 @@ export default function CharacterForm({
             <div>
                 <div className="mb-2 flex items-center justify-between">
                     <InputLabel>Profissões</InputLabel>
-                    <span className="text-xs text-parchment-300">{primaryCount}/2 primárias</span>
+                    <span className="text-parchment-300 text-xs">
+                        {primaryCount}/2 primárias
+                    </span>
                 </div>
 
                 <div className="space-y-2">
                     {data.professions.map((row, index) => (
-                        <div key={index} className="flex gap-2">
+                        <div key={index} className="flex items-center gap-2">
+                            {professionIcon(row.name) && (
+                                <img
+                                    src={professionIcon(row.name)}
+                                    alt=""
+                                    className="border-tavern-700 h-8 w-8 shrink-0 rounded-sm border"
+                                />
+                            )}
                             <select
                                 value={row.name}
-                                onChange={(e) => updateProfession(index, { name: e.target.value })}
-                                className="flex-1 rounded-md border border-tavern-700 bg-tavern-950 px-3 py-2 text-sm text-parchment-100 focus:border-parchment-300 focus:outline-none"
+                                onChange={(e) =>
+                                    updateProfession(index, {
+                                        name: e.target.value,
+                                    })
+                                }
+                                className="border-tavern-700 bg-tavern-950 text-parchment-100 focus:border-parchment-300 flex-1 rounded-md border px-3 py-2 text-sm focus:outline-none"
                             >
                                 <option value="">Selecione...</option>
                                 {options.professions.map((profession) => (
@@ -329,7 +365,9 @@ export default function CharacterForm({
                                         }
                                     >
                                         {profession.label}
-                                        {profession.isPrimary ? '' : ' (secundária)'}
+                                        {profession.isPrimary
+                                            ? ''
+                                            : ' (secundária)'}
                                     </option>
                                 ))}
                             </select>
@@ -341,7 +379,9 @@ export default function CharacterForm({
                                 placeholder="Nível"
                                 value={row.skill_level}
                                 onChange={(e) =>
-                                    updateProfession(index, { skill_level: e.target.value })
+                                    updateProfession(index, {
+                                        skill_level: e.target.value,
+                                    })
                                 }
                                 className="w-24"
                             />
@@ -349,7 +389,7 @@ export default function CharacterForm({
                             <button
                                 type="button"
                                 onClick={() => removeProfession(index)}
-                                className="rounded-md border border-tavern-700 px-3 text-sm text-parchment-300 hover:text-horde"
+                                className="border-tavern-700 text-parchment-300 hover:text-horde rounded-md border px-3 text-sm"
                             >
                                 Remover
                             </button>
@@ -361,7 +401,7 @@ export default function CharacterForm({
                     <button
                         type="button"
                         onClick={addProfession}
-                        className="mt-2 text-sm font-medium text-parchment-100 underline"
+                        className="text-parchment-100 mt-2 text-sm font-medium underline"
                     >
                         + Adicionar profissão
                     </button>
@@ -373,7 +413,7 @@ export default function CharacterForm({
             <button
                 type="submit"
                 disabled={processing}
-                className="rounded-md bg-alliance px-5 py-2 font-medium text-white transition hover:bg-alliance-dim disabled:opacity-50"
+                className="bg-alliance hover:bg-alliance-dim rounded-md px-5 py-2 font-medium text-white transition disabled:opacity-50"
             >
                 {submitLabel}
             </button>
