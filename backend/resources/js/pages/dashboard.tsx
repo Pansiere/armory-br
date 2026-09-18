@@ -1,7 +1,7 @@
 import EmblemIcon from '@/components/emblem-icon';
 import FactionColumn from '@/components/faction-column';
 import AppLayout from '@/layouts/app-layout';
-import type { Character } from '@/types/character';
+import type { Character, EquipmentSlotOption } from '@/types/character';
 import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import Sortable from 'sortablejs';
@@ -18,13 +18,22 @@ function idsOf(container: HTMLElement | null): number[] {
         .filter((id) => !Number.isNaN(id));
 }
 
-function reorder(current: Lists, allianceIds: number[], hordeIds: number[]): Lists {
+function reorder(
+    current: Lists,
+    allianceIds: number[],
+    hordeIds: number[],
+): Lists {
     const byId = new Map(
-        [...current.alliance, ...current.horde].map((character) => [character.id, character]),
+        [...current.alliance, ...current.horde].map((character) => [
+            character.id,
+            character,
+        ]),
     );
 
     const resolve = (ids: number[]) =>
-        ids.map((id) => byId.get(id)).filter((character): character is Character => !!character);
+        ids
+            .map((id) => byId.get(id))
+            .filter((character): character is Character => !!character);
 
     return { alliance: resolve(allianceIds), horde: resolve(hordeIds) };
 }
@@ -32,9 +41,11 @@ function reorder(current: Lists, allianceIds: number[], hordeIds: number[]): Lis
 export default function Dashboard({
     alliance,
     horde,
+    equipmentSlots,
 }: {
     alliance: Character[];
     horde: Character[];
+    equipmentSlots: EquipmentSlotOption[];
 }) {
     const [lists, setLists] = useState<Lists>({ alliance, horde });
     const allianceRef = useRef<HTMLDivElement>(null);
@@ -75,7 +86,8 @@ export default function Dashboard({
                 {
                     preserveScroll: true,
                     preserveState: true,
-                    onError: () => router.reload({ only: ['alliance', 'horde'] }),
+                    onError: () =>
+                        router.reload({ only: ['alliance', 'horde'] }),
                 },
             );
         };
@@ -103,15 +115,18 @@ export default function Dashboard({
         .filter((level): level is number => level != null);
     const averageItemLevel =
         itemLevels.length > 0
-            ? Math.round(itemLevels.reduce((sum, level) => sum + level, 0) / itemLevels.length)
+            ? Math.round(
+                  itemLevels.reduce((sum, level) => sum + level, 0) /
+                      itemLevels.length,
+              )
             : null;
 
     const newCharacterButton = (
         <Link
             href="/characters/create"
-            className="group inline-flex shrink-0 items-center gap-2 rounded-md border border-parchment-300/30 bg-tavern-900 px-4 py-2 font-heading text-sm font-semibold tracking-wide text-parchment-100 shadow transition hover:border-parchment-300/60 hover:bg-tavern-800"
+            className="group border-parchment-300/30 bg-tavern-900 font-heading text-parchment-100 hover:border-parchment-300/60 hover:bg-tavern-800 inline-flex shrink-0 items-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold tracking-wide shadow transition"
         >
-            <span className="text-lg leading-none text-parchment-300 transition group-hover:text-parchment-100">
+            <span className="text-parchment-300 group-hover:text-parchment-100 text-lg leading-none transition">
                 +
             </span>
             Novo personagem
@@ -124,10 +139,10 @@ export default function Dashboard({
 
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
                 <div>
-                    <h1 className="font-heading text-2xl font-bold text-parchment-100">
+                    <h1 className="font-heading text-parchment-100 text-2xl font-bold">
                         Meus personagens
                     </h1>
-                    <p className="mt-1 text-sm text-parchment-300">
+                    <p className="text-parchment-300 mt-1 text-sm">
                         {total === 0
                             ? 'Nenhum personagem cadastrado ainda.'
                             : `${total} personagem${total === 1 ? '' : 's'}${
@@ -142,15 +157,16 @@ export default function Dashboard({
             </div>
 
             {total === 0 ? (
-                <div className="flex flex-col items-center gap-4 rounded-lg border border-dashed border-tavern-700 px-6 py-16 text-center">
-                    <EmblemIcon className="h-16 w-16 text-tavern-700" />
+                <div className="border-tavern-700 flex flex-col items-center gap-4 rounded-lg border border-dashed px-6 py-16 text-center">
+                    <EmblemIcon className="text-tavern-700 h-16 w-16" />
                     <div>
-                        <p className="font-heading text-lg font-semibold text-parchment-100">
+                        <p className="font-heading text-parchment-100 text-lg font-semibold">
                             Sua vitrine está vazia
                         </p>
-                        <p className="mt-1 max-w-sm text-sm text-parchment-300">
-                            Cadastre seu primeiro personagem pra começar a montar o boneco de
-                            equipamento e organizar sua conta por facção.
+                        <p className="text-parchment-300 mt-1 max-w-sm text-sm">
+                            Cadastre seu primeiro personagem pra começar a
+                            montar o boneco de equipamento e organizar sua conta
+                            por facção.
                         </p>
                     </div>
                     {newCharacterButton}
@@ -161,10 +177,16 @@ export default function Dashboard({
                         faction="alliance"
                         characters={lists.alliance}
                         listRef={allianceRef}
+                        equipmentSlots={equipmentSlots}
                     />
-                    <div className="h-px bg-tavern-700 md:hidden" />
-                    <div className="hidden w-px bg-tavern-700 md:block" />
-                    <FactionColumn faction="horde" characters={lists.horde} listRef={hordeRef} />
+                    <div className="bg-tavern-700 h-px md:hidden" />
+                    <div className="bg-tavern-700 hidden w-px md:block" />
+                    <FactionColumn
+                        faction="horde"
+                        characters={lists.horde}
+                        listRef={hordeRef}
+                        equipmentSlots={equipmentSlots}
+                    />
                 </div>
             )}
         </AppLayout>

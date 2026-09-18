@@ -32,6 +32,7 @@ class CharacterController extends Controller
         return Inertia::render('dashboard', [
             'alliance' => CharacterResource::collection($characters->get(Faction::Alliance->value, collect())),
             'horde' => CharacterResource::collection($characters->get(Faction::Horde->value, collect())),
+            'equipmentSlots' => $this->equipmentSlotOptions(),
         ]);
     }
 
@@ -186,12 +187,25 @@ class CharacterController extends Controller
                 'label' => $race->label(),
                 'faction' => $race->faction()->value,
             ]),
-            'equipmentSlots' => collect(EquipmentSlot::cases())->map(fn (EquipmentSlot $slot) => [
-                'value' => $slot->value,
-                'label' => $slot->label(),
-                'column' => $slot->column(),
-            ]),
+            'equipmentSlots' => $this->equipmentSlotOptions(),
         ];
+    }
+
+    /**
+     * Extraído de formOptions() porque o dashboard (index()) também precisa
+     * disso — pro boneco somente-leitura no modal do card (seção da issue
+     * #20) — sem precisar do resto (classes/raças/specs/profissões), que
+     * só as telas de criar/editar personagem usam.
+     *
+     * @return array<int, array{value: string, label: string, column: string}>
+     */
+    private function equipmentSlotOptions(): array
+    {
+        return collect(EquipmentSlot::cases())->map(fn (EquipmentSlot $slot) => [
+            'value' => $slot->value,
+            'label' => $slot->label(),
+            'column' => $slot->column(),
+        ])->all();
     }
 
     /**
