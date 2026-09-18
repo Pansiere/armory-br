@@ -22,10 +22,11 @@ onde não existe uma Armory oficial: todo dado é cadastrado manualmente pelo us
 - **Dual spec**: até 2 especializações por personagem (as 3 árvores de talento
   de cada classe, com ícone), cada uma com o seu próprio conjunto de
   equipamento — trocar de aba no boneco troca o gear junto, igual no jogo.
-- **Import de equipamento colado**: cola o texto exportado pelo addon
-  [ArmoryBRExport](#importando-equipamento) (ou o link de qualquer item
-  colado do chat) e o boneco inteiro é montado de uma vez — sem precisar
-  cadastrar item por item.
+- **Import colado**: cola o texto exportado pelo addon
+  [ArmoryBRExport](#importando-equipamento-e-o-resto-do-personagem) (ou o
+  link de qualquer item colado do chat) e o boneco inteiro é montado de uma
+  vez, gemas inclusas — sem precisar cadastrar item por item. O mesmo texto
+  também atualiza nome, raça, nível e profissões.
 - **Perfil público opt-in**: cada personagem pode gerar um link (`/p/{token}`)
   sem necessidade de login, com imagem de preview (Open Graph) gerada na hora —
   cola no Discord da guilda e aparece o boneco montado.
@@ -33,13 +34,17 @@ onde não existe uma Armory oficial: todo dado é cadastrado manualmente pelo us
   personagem.
 - Busca de itens com índice full-text (MySQL/MariaDB).
 
-## Importando equipamento
+## Importando equipamento (e o resto do personagem)
 
-Não existe (ainda) um jeito de importar o personagem inteiro — nome, raça,
-classe, nível e profissões continuam sendo cadastrados na mão, uma vez por
-personagem, porque não há acesso ao banco do servidor pra puxar isso
-automaticamente. O que a importação resolve é a parte chata de configurar o
-**equipamento**, item por item.
+O personagem precisa existir antes — classe e a(s) spec(s) são cadastradas
+na mão, uma vez, na criação, porque não há acesso ao banco do servidor pra
+puxar isso automaticamente. A partir daí, colar o texto do addon **também
+atualiza nome, raça e nível**, e **sincroniza as profissões** (cria as que
+faltam, atualiza o skill level, remove as que a exportação não lista mais —
+ou seja, largou a profissão no jogo). Nada disso precisa mais ser mantido na
+mão depois do primeiro cadastro. O que sempre foi o principal continua
+sendo: monta o **equipamento** (com gemas) de uma vez, sem cadastrar item
+por item.
 
 ### Com o addon ArmoryBRExport (recomendado)
 
@@ -63,9 +68,10 @@ existir em qualquer client 3.3.5a.
    seleção de personagem pelo menos uma vez antes de aparecer na lista).
 2. Digite `/armorybr` (ou `/abr`) na barra de chat. Abre uma janela com o
    equipamento já selecionado — `Ctrl+C` pra copiar.
-3. Na Armory BR, cadastre o personagem (nome/raça/classe/spec(s)/nível) se
-   ainda não existir, entre na edição dele e cole o texto na caixa **"Colar
-   equipamento"**. Cada peça é reconhecida pelo nome do slot (`head=`,
+3. Na Armory BR, cadastre o personagem (nome/classe/spec(s)) se ainda não
+   existir, entre na edição dele e cole o texto na caixa **"Colar
+   equipamento"**. Nome, raça, nível e profissões são atualizados junto. Cada
+   peça de equipamento é reconhecida pelo nome do slot (`head=`,
    `main_hand=`, etc.) e cai automaticamente no lugar certo do boneco — **as
    gemas engastadas também são importadas** junto com cada item, direto nos
    sockets certos. Personagem com dual spec: a caixa de import sempre
