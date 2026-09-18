@@ -179,6 +179,89 @@ it('ignora silenciosamente uma gema do import cuja cor não combina com o socket
     expect($characterItem->gems)->toHaveCount(0);
 });
 
+it('atualiza nome, raça (e a facção implícita) e nível a partir do export', function () {
+    $user = User::factory()->create();
+    $character = Character::factory()->for($user)->create(['name' => 'NomeAntigo', 'faction' => 'horde', 'level' => 1]);
+    $spec = $character->primarySpec()->spec->value;
+
+    $profile = <<<'TXT'
+        name=NomeNovo
+        race=night_elf
+        level=80
+        TXT;
+
+    $this->actingAs($user)
+        ->post("/characters/{$character->id}/equipment/{$spec}/import", ['text' => $profile])
+        ->assertRedirect();
+
+    $character->refresh();
+    expect($character->name)->toBe('NomeNovo');
+    expect($character->race->value)->toBe('night_elf');
+    expect($character->level)->toBe(80);
+    // Night Elf é Aliança — a facção cadastrada (Horde) deveria ter sido
+    // corrigida junto, senão o personagem fica com raça e facção incoerentes.
+    expect($character->faction->value)->toBe('alliance');
+});
+
+it('sincroniza profissões a partir do export, sem duplicar ao colar de novo', function () {
+    $user = User::factory()->create();
+    $character = Character::factory()->for($user)->create();
+    $spec = $character->primarySpec()->spec->value;
+
+    $profile = "profession=alchemy:450\nprofession=herbalism:375";
+
+    $this->actingAs($user)
+        ->post("/characters/{$character->id}/equipment/{$spec}/import", ['text' => $profile])
+        ->assertRedirect();
+
+    expect($character->professions)->toHaveCount(2);
+
+    // Recolar o mesmo texto não deve duplicar.
+    $this->actingAs($user)
+        ->post("/characters/{$character->id}/equipment/{$spec}/import", ['text' => $profile])
+        ->assertRedirect();
+
+    expect($character->fresh()->professions)->toHaveCount(2);
+});
+
+it('remove profissão largada: reimportar sem ela some com o registro antigo', function () {
+    $user = User::factory()->create();
+    $character = Character::factory()->for($user)->create();
+    $spec = $character->primarySpec()->spec->value;
+
+    $this->actingAs($user)
+        ->post("/characters/{$character->id}/equipment/{$spec}/import", ['text' => "profession=mining:450\nprofession=herbalism:450"])
+        ->assertRedirect();
+
+    expect($character->professions)->toHaveCount(2);
+
+    // Trocou mining por skinning no jogo — o novo export não lista mining.
+    $this->actingAs($user)
+        ->post("/characters/{$character->id}/equipment/{$spec}/import", ['text' => "profession=skinning:1\nprofession=herbalism:450"])
+        ->assertRedirect();
+
+    $names = $character->fresh()->professions->pluck('name.value')->all();
+    expect($names)->toContain('skinning')->toContain('herbalism')->not->toContain('mining');
+});
+
+it('não mexe em nome/raça/nível/profissões quando o texto colado não tem essas linhas', function () {
+    $user = User::factory()->create();
+    $character = Character::factory()->for($user)->create(['name' => 'Original', 'level' => 42]);
+    $spec = $character->primarySpec()->spec->value;
+    $character->professions()->create(['name' => 'mining', 'skill_level' => 300]);
+
+    $head = Item::create(['item_id' => 601, 'name' => 'Elmo', 'slot' => InventorySlot::Head, 'quality' => ItemQuality::Epic, 'item_level' => 200]);
+
+    $this->actingAs($user)
+        ->post("/characters/{$character->id}/equipment/{$spec}/import", ['text' => "head=elmo,id={$head->item_id}"])
+        ->assertRedirect();
+
+    $character->refresh();
+    expect($character->name)->toBe('Original');
+    expect($character->level)->toBe(42);
+    expect($character->professions)->toHaveCount(1);
+});
+
 it('não deixa importar equipamento numa spec que o personagem não tem', function () {
     $user = User::factory()->create();
     $character = Character::factory()->for($user)->create(['class' => 'warrior']);

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Enums\EquipmentSlot;
 use App\Enums\GemColor;
+use App\Enums\Profession;
+use App\Enums\Race;
 use App\Enums\Spec;
 use App\Models\Character;
 use App\Models\CharacterItem;
@@ -316,8 +318,83 @@ class CharacterEquipmentController extends Controller
     }
 
     /**
+     * Atualiza nome/raça/nível/profissões do personagem a partir das linhas
+     * `name=`, `race=`, `level=` e `profession=slug:skill_level` que o
+     * addon ArmoryBRExport inclui no início do export — convenção própria,
+     * não existe no SimC original. Cada campo é independente: se não
+     * aparecer no texto (outra fonte, versão antiga do addon), o valor
+     * atual do personagem não é mexido.
+     *
+     * Profissões são sincronizadas por completo (removidas as que não
+     * vierem) só quando pelo menos uma linha `profession=` aparece — feito
+     * assim porque, diferente de equipamento/gemas, o addon sempre lista o
+     * conjunto COMPLETO de profissões atuais quando suporta esse campo, então
+     * a ausência de uma profissão que existia antes significa que ela foi
+     * largada de verdade no jogo, não que o texto é parcial.
+     */
+    private function updateCharacterMetaFromExport(Character $character, string $text): void
+    {
+        if (preg_match('/^\s*name\s*=\s*(.+?)\s*$/im', $text, $match)) {
+            $character->name = $match[1];
+        }
+
+        if (preg_match('/^\s*race\s*=\s*([a-z_]+)\s*$/im', $text, $match)) {
+            $race = Race::tryFrom($match[1]);
+
+            if ($race !== null) {
+                $character->race = $race;
+                // A facção é implícita na raça — evita ficar inconsistente
+                // (ex.: texto colado sem querer no personagem errado).
+                $character->faction = $race->faction();
+            }
+        }
+
+        if (preg_match('/^\s*level\s*=\s*(\d+)\s*$/im', $text, $match)) {
+            $character->level = (int) $match[1];
+        }
+
+        $character->save();
+
+        preg_match_all('/^\s*profession\s*=\s*([a-z_]+):(\d+)\s*$/im', $text, $professionMatches, PREG_SET_ORDER);
+
+        if ($professionMatches === []) {
+            return;
+        }
+
+        $character->professions()->delete();
+        $primaryCount = 0;
+        $seen = [];
+
+        foreach ($professionMatches as $match) {
+            $profession = Profession::tryFrom($match[1]);
+
+            if ($profession === null || in_array($profession, $seen, true)) {
+                continue;
+            }
+
+            if ($profession->isPrimary()) {
+                if ($primaryCount >= Profession::MAX_PRIMARY_PER_CHARACTER) {
+                    continue;
+                }
+
+                $primaryCount++;
+            }
+
+            $seen[] = $profession;
+
+            $character->professions()->create([
+                'name' => $profession->value,
+                'skill_level' => min((int) $match[2], Profession::MAX_SKILL_LEVEL),
+            ]);
+        }
+    }
+
+    /**
      * Monta o boneco inteiro a partir do texto que addons de WotLK exportam
-     * (seção 7.2). Reconhece três formatos, sem exigir um addon específico:
+     * (seção 7.2), e também atualiza nome/raça/nível/profissões do
+     * personagem se o texto trouxer essas linhas (ver
+     * updateCharacterMetaFromExport()). Reconhece três formatos de
+     * equipamento, sem exigir um addon específico:
      *
      * 1. Perfil do SimulationCraft (comando `/simc` no jogo, ou o addon
      *    próprio ArmoryBRExport — ver wotlk-addons) — linhas tipo
@@ -351,6 +428,11 @@ class CharacterEquipmentController extends Controller
         ]);
 
         $text = $validated['text'];
+
+        // Processado antes do "sem equipamento reconhecido, retorna cedo"
+        // logo abaixo — texto só com metadados (sem nenhum slot reconhecido)
+        // ainda deve atualizar nome/raça/nível/profissões.
+        $this->updateCharacterMetaFromExport($character, $text);
 
         [$simcBySlot, $gemsBySlot] = $this->parseSimcProfile($text);
 

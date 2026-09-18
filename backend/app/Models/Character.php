@@ -21,7 +21,7 @@ use Illuminate\Support\Str;
  * @property string $name
  * @property Faction $faction
  * @property CharacterClass $class
- * @property string|null $race
+ * @property Race|null $race
  * @property int|null $level
  * @property int $position
  * @property bool $is_public
