@@ -6,6 +6,7 @@ use App\Enums\EquipmentSlot;
 use App\Enums\GemColor;
 use App\Http\Resources\ItemResource;
 use App\Models\Item;
+use App\Support\WowheadTooltipResolver;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,14 @@ use Illuminate\Validation\Rules\Enum;
 
 class ItemController extends Controller
 {
+    /**
+     * @return array{tooltip_html: string|null}
+     */
+    public function tooltip(Item $item, WowheadTooltipResolver $resolver): array
+    {
+        return ['tooltip_html' => $resolver->resolve($item)];
+    }
+
     public function search(Request $request): AnonymousResourceCollection
     {
         $validated = $request->validate([

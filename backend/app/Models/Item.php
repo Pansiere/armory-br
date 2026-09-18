@@ -22,10 +22,11 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $socket_color_2
  * @property int $socket_color_3
  * @property int|null $gem_color
+ * @property string|null $tooltip_html
  */
 #[Fillable([
     'item_id', 'name', 'icon', 'slot', 'quality', 'item_level',
-    'socket_color_1', 'socket_color_2', 'socket_color_3', 'gem_color',
+    'socket_color_1', 'socket_color_2', 'socket_color_3', 'gem_color', 'tooltip_html',
 ])]
 class Item extends Model
 {

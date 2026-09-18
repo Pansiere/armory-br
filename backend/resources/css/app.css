@@ -31,3 +31,69 @@
 body {
     @apply bg-tavern-950 text-parchment-100;
 }
+
+/*
+ * Tooltip estilo Wowhead (issue #19) — estiliza o HTML que vem de
+ * `/items/{id}/tooltip` (mesmo HTML que o Wowhead usa nas próprias
+ * páginas dele, ver App\Support\WowheadTooltipResolver). As classes
+ * q0-q6 abaixo são delas, não nossas — mantidas com os mesmos nomes pra
+ * não precisar reescrever o HTML recebido, e com as mesmas cores de
+ * App\Enums\ItemQuality::color() pra bater com o resto do site.
+ */
+.wowhead-tooltip {
+    @apply border-tavern-700 bg-tavern-950 text-parchment-300 pointer-events-none rounded-md border px-3 py-2 text-sm leading-snug;
+    font-family: var(--font-sans);
+}
+
+.wowhead-tooltip table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.wowhead-tooltip td,
+.wowhead-tooltip th {
+    padding: 0;
+    text-align: left;
+    font-weight: normal;
+    vertical-align: top;
+}
+
+.wowhead-tooltip .q0 {
+    color: #9d9d9d;
+}
+.wowhead-tooltip .q1 {
+    color: #ffffff;
+}
+.wowhead-tooltip .q2 {
+    color: #1eff00;
+}
+.wowhead-tooltip .q3 {
+    color: #0070dd;
+}
+.wowhead-tooltip .q4 {
+    color: #a335ee;
+}
+.wowhead-tooltip .q5 {
+    color: #ff8000;
+}
+.wowhead-tooltip .q6 {
+    color: #e6cc80;
+}
+
+.wowhead-tooltip .whtt-extra {
+    @apply text-parchment-300/70 text-xs;
+}
+
+.wowhead-tooltip .whtt-sellprice {
+    @apply text-parchment-300/70 mt-1 text-xs;
+}
+
+.wowhead-tooltip .moneygold {
+    color: #ffd700;
+}
+.wowhead-tooltip .moneysilver {
+    color: #c7c7c7;
+}
+.wowhead-tooltip .moneycopper {
+    color: #c87137;
+}
