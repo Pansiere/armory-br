@@ -18,10 +18,11 @@ function formatResetDate(iso: string): string {
 /**
  * Badges de CD de raid no card do dashboard — um por raid (ICC/RS/ToC/VoA),
  * sempre visíveis (mesmo sem CD marcado) pra que o toggle seja descobrível.
- * Cada badge abre um popover com 10 e 25-man, e cada tamanho cicla
- * Livre → Normal → Heroico → Livre num só clique, já que 10 e 25 são
- * lockouts independentes mas Normal/Heroico do mesmo tamanho compartilham
- * um só (não dá pra ter os dois ao mesmo tempo no mesmo tamanho).
+ * Cada badge abre um popover com 10 e 25-man, cada um com dois botões
+ * explícitos N/H (em vez de um clique só ciclando os estados, que não deixa
+ * claro que dá pra escolher heroico direto) — clicar no que já está ativo
+ * desmarca. 10 e 25 são lockouts independentes, mas Normal/Heroico do mesmo
+ * tamanho compartilham um só (não dá pra ter os dois ao mesmo tempo).
  */
 export default function CharacterRaidLocks({
     characterId,
@@ -61,37 +62,27 @@ export default function CharacterRaidLocks({
             .sort((a, b) => a.size - b.size);
     }
 
-    function cycle(
+    function setMode(
         raidValue: string,
         size: 10 | 25,
         current: RaidLock | undefined,
+        heroic: boolean,
     ) {
-        setOpenRaid(null);
-
-        if (!current) {
-            router.put(
+        // Clicar no modo que já está ativo desmarca (volta a "Livre") —
+        // senão não teria como limpar um CD marcado por engano sem esperar
+        // o reset.
+        if (current && current.heroic === heroic) {
+            router.delete(
                 `/characters/${characterId}/raid-locks/${raidValue}/${size}`,
-                { heroic: false },
                 { preserveScroll: true, preserveState: true },
             );
             return;
         }
 
-        if (!current.heroic) {
-            router.put(
-                `/characters/${characterId}/raid-locks/${raidValue}/${size}`,
-                { heroic: true },
-                { preserveScroll: true, preserveState: true },
-            );
-            return;
-        }
-
-        router.delete(
+        router.put(
             `/characters/${characterId}/raid-locks/${raidValue}/${size}`,
-            {
-                preserveScroll: true,
-                preserveState: true,
-            },
+            { heroic },
+            { preserveScroll: true, preserveState: true },
         );
     }
 
@@ -130,7 +121,7 @@ export default function CharacterRaidLocks({
                                     {locks
                                         .map(
                                             (lock) =>
-                                                `${lock.size}${lock.heroic ? 'H' : ''}`,
+                                                `${lock.size}${lock.heroic ? 'H' : 'N'}`,
                                         )
                                         .join('/')}
                                 </span>
@@ -151,37 +142,58 @@ export default function CharacterRaidLocks({
                                     );
 
                                     return (
-                                        <button
+                                        <div
                                             key={size}
-                                            type="button"
-                                            onClick={(event) => {
-                                                stop(event);
-                                                cycle(raid.value, size, lock);
-                                            }}
-                                            className="hover:bg-tavern-800 flex w-full items-center justify-between rounded px-1.5 py-1 text-xs"
+                                            className="flex items-center justify-between gap-2 py-0.5"
                                         >
-                                            <span className="text-parchment-300">
+                                            <span className="text-parchment-300 text-xs">
                                                 {size}
                                             </span>
-                                            <span
-                                                className={cn(
-                                                    'font-semibold',
-                                                    !lock &&
-                                                        'text-parchment-300/40',
-                                                    lock &&
-                                                        !lock.heroic &&
-                                                        'text-parchment-100',
-                                                    lock?.heroic &&
-                                                        'text-amber-400',
-                                                )}
-                                            >
-                                                {lock
-                                                    ? lock.heroic
-                                                        ? 'Heroico'
-                                                        : 'Normal'
-                                                    : 'Livre'}
-                                            </span>
-                                        </button>
+                                            <div className="flex gap-1">
+                                                <button
+                                                    type="button"
+                                                    title="Normal"
+                                                    onClick={(event) => {
+                                                        stop(event);
+                                                        setMode(
+                                                            raid.value,
+                                                            size,
+                                                            lock,
+                                                            false,
+                                                        );
+                                                    }}
+                                                    className={cn(
+                                                        'rounded px-1.5 py-0.5 text-[10px] font-bold',
+                                                        lock && !lock.heroic
+                                                            ? 'bg-parchment-100 text-tavern-950'
+                                                            : 'bg-tavern-800 text-parchment-300/50 hover:text-parchment-100',
+                                                    )}
+                                                >
+                                                    N
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    title="Heroico"
+                                                    onClick={(event) => {
+                                                        stop(event);
+                                                        setMode(
+                                                            raid.value,
+                                                            size,
+                                                            lock,
+                                                            true,
+                                                        );
+                                                    }}
+                                                    className={cn(
+                                                        'rounded px-1.5 py-0.5 text-[10px] font-bold',
+                                                        lock?.heroic
+                                                            ? 'text-tavern-950 bg-amber-400'
+                                                            : 'bg-tavern-800 text-parchment-300/50 hover:text-parchment-100',
+                                                    )}
+                                                >
+                                                    H
+                                                </button>
+                                            </div>
+                                        </div>
                                     );
                                 })}
                             </div>
