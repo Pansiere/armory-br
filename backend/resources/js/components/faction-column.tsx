@@ -1,6 +1,10 @@
 import CharacterCard from '@/components/character-card';
 import { cn } from '@/lib/utils';
-import type { Character, Faction } from '@/types/character';
+import type {
+    Character,
+    EquipmentSlotOption,
+    Faction,
+} from '@/types/character';
 import { Link } from '@inertiajs/react';
 import type { RefObject } from 'react';
 
@@ -28,18 +32,35 @@ export default function FactionColumn({
     faction,
     characters,
     listRef,
+    equipmentSlots,
 }: {
     faction: Faction;
     characters: Character[];
     listRef: RefObject<HTMLDivElement | null>;
+    equipmentSlots: EquipmentSlotOption[];
 }) {
     const meta = FACTION_META[faction];
 
     return (
-        <section className={cn('flex-1 rounded-lg border-t-4', meta.border, meta.wash)}>
+        <section
+            className={cn(
+                'flex-1 rounded-lg border-t-4',
+                meta.border,
+                meta.wash,
+            )}
+        >
             <header className="flex items-center justify-between px-4 py-3">
-                <h2 className={cn('flex items-center gap-2 font-heading text-lg font-bold', meta.text)}>
-                    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-current">
+                <h2
+                    className={cn(
+                        'font-heading flex items-center gap-2 text-lg font-bold',
+                        meta.text,
+                    )}
+                >
+                    <svg
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                        className="h-4 w-4 fill-current"
+                    >
                         <path d="M12 2 C8 2 5 3.4 5 5.6 L5 11 C5 16 8 19.6 12 21.5 C16 19.6 19 16 19 11 L19 5.6 C19 3.4 16 2 12 2 Z" />
                     </svg>
                     {meta.label}
@@ -54,20 +75,31 @@ export default function FactionColumn({
                 </span>
             </header>
 
-            <div ref={listRef} data-faction={faction} className="flex min-h-24 flex-col gap-2 px-3 pb-4">
+            <div
+                ref={listRef}
+                data-faction={faction}
+                className="flex min-h-24 flex-col gap-2 px-3 pb-4"
+            >
                 {characters.map((character) => (
-                    <CharacterCard key={character.id} character={character} />
+                    <CharacterCard
+                        key={character.id}
+                        character={character}
+                        equipmentSlots={equipmentSlots}
+                    />
                 ))}
 
                 {characters.length === 0 && (
                     <Link
                         href="/characters/create"
-                        className="sortable-ignore rounded-md border border-dashed border-tavern-700 px-4 py-8 text-center text-sm text-parchment-300 transition hover:border-parchment-300 hover:text-parchment-100"
+                        className="sortable-ignore border-tavern-700 text-parchment-300 hover:border-parchment-300 hover:text-parchment-100 rounded-md border border-dashed px-4 py-8 text-center text-sm transition"
                     >
-                        Nenhum personagem {faction === 'alliance' ? 'da Aliança' : 'da Horda'}{' '}
+                        Nenhum personagem{' '}
+                        {faction === 'alliance' ? 'da Aliança' : 'da Horda'}{' '}
                         ainda.
                         <br />
-                        <span className="font-medium underline">Cadastrar personagem</span>
+                        <span className="font-medium underline">
+                            Cadastrar personagem
+                        </span>
                     </Link>
                 )}
             </div>

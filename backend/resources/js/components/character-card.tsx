@@ -1,27 +1,44 @@
+import CharacterEquipmentModal from '@/components/character-equipment-modal';
+import EquipmentMiniature from '@/components/equipment-miniature';
 import { cn } from '@/lib/utils';
-import type { Character } from '@/types/character';
+import type { Character, EquipmentSlotOption } from '@/types/character';
 import { Link } from '@inertiajs/react';
+import { useState, type MouseEvent } from 'react';
 
-export default function CharacterCard({ character }: { character: Character }) {
+export default function CharacterCard({
+    character,
+    equipmentSlots,
+}: {
+    character: Character;
+    equipmentSlots: EquipmentSlotOption[];
+}) {
+    const [expanded, setExpanded] = useState(false);
     const initial = character.name.charAt(0).toUpperCase();
 
     const primarySpec = character.specs[0];
     const secondarySpec = character.specs[1];
 
     const weapon = primarySpec?.equipment.find(
-        (equipment) => equipment.slot === 'main_hand' || equipment.slot === 'ranged',
+        (equipment) =>
+            equipment.slot === 'main_hand' || equipment.slot === 'ranged',
     )?.item;
+
+    function openExpanded(event: MouseEvent) {
+        event.preventDefault();
+        event.stopPropagation();
+        setExpanded(true);
+    }
 
     return (
         <Link
             href={`/characters/${character.id}/edit`}
             data-id={character.id}
-            className="group flex cursor-grab items-center gap-3 rounded-md border-l-4 bg-parchment-100 p-3 text-ink shadow transition hover:-translate-y-0.5 hover:bg-parchment-200 hover:shadow-md active:cursor-grabbing active:translate-y-0"
+            className="group bg-parchment-100 text-ink hover:bg-parchment-200 flex cursor-grab items-center gap-3 rounded-md border-l-4 p-3 shadow transition hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:cursor-grabbing"
             style={{ borderLeftColor: character.class_color }}
         >
             <span className="relative shrink-0">
                 <span
-                    className="flex h-10 w-10 items-center justify-center rounded-full font-heading text-lg font-bold text-ink"
+                    className="font-heading text-ink flex h-10 w-10 items-center justify-center rounded-full text-lg font-bold"
                     style={{
                         backgroundColor: character.class_color,
                         boxShadow: `0 0 10px -2px ${character.class_color}`,
@@ -31,10 +48,16 @@ export default function CharacterCard({ character }: { character: Character }) {
                 </span>
                 {weapon?.icon_url && (
                     <span
-                        className="absolute -right-1.5 -bottom-1.5 flex h-5 w-5 items-center justify-center rounded-sm bg-parchment-100 p-0.5"
-                        style={{ boxShadow: `0 0 0 1.5px ${weapon.quality_color}, 0 1px 3px rgba(0,0,0,0.4)` }}
+                        className="bg-parchment-100 absolute -right-1.5 -bottom-1.5 flex h-5 w-5 items-center justify-center rounded-sm p-0.5"
+                        style={{
+                            boxShadow: `0 0 0 1.5px ${weapon.quality_color}, 0 1px 3px rgba(0,0,0,0.4)`,
+                        }}
                     >
-                        <img src={weapon.icon_url} alt="" className="h-full w-full rounded-[1px]" />
+                        <img
+                            src={weapon.icon_url}
+                            alt=""
+                            className="h-full w-full rounded-[1px]"
+                        />
                     </span>
                 )}
             </span>
@@ -45,7 +68,7 @@ export default function CharacterCard({ character }: { character: Character }) {
                     {character.is_public && (
                         <span
                             title="Perfil público ativo"
-                            className="shrink-0 text-ink/40 group-hover:text-alliance"
+                            className="text-ink/40 group-hover:text-alliance shrink-0"
                         >
                             <svg
                                 viewBox="0 0 16 16"
@@ -60,12 +83,12 @@ export default function CharacterCard({ character }: { character: Character }) {
                         </span>
                     )}
                     {character.level != null && (
-                        <span className="shrink-0 text-xs font-normal text-ink/60">
+                        <span className="text-ink/60 shrink-0 text-xs font-normal">
                             Nv. {character.level}
                         </span>
                     )}
                     {character.average_item_level != null && (
-                        <span className="shrink-0 rounded-full bg-tavern-900 px-1.5 py-0.5 text-[10px] font-semibold text-parchment-200">
+                        <span className="bg-tavern-900 text-parchment-200 shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold">
                             ilvl {character.average_item_level}
                         </span>
                     )}
@@ -82,24 +105,67 @@ export default function CharacterCard({ character }: { character: Character }) {
                     {primarySpec && (
                         <span className="flex shrink-0 items-center gap-1">
                             <span aria-hidden="true">·</span>
-                            <img src={primarySpec.icon_url} alt="" className="h-3.5 w-3.5 rounded-sm" />
-                            <span className="truncate">{primarySpec.label}</span>
+                            <img
+                                src={primarySpec.icon_url}
+                                alt=""
+                                className="h-3.5 w-3.5 rounded-sm"
+                            />
+                            <span className="truncate">
+                                {primarySpec.label}
+                            </span>
                         </span>
                     )}
                     {secondarySpec && (
                         <span className="flex shrink-0 items-center gap-1">
                             <span aria-hidden="true">/</span>
-                            <img src={secondarySpec.icon_url} alt="" className="h-3.5 w-3.5 rounded-sm" />
-                            <span className="truncate">{secondarySpec.label}</span>
+                            <img
+                                src={secondarySpec.icon_url}
+                                alt=""
+                                className="h-3.5 w-3.5 rounded-sm"
+                            />
+                            <span className="truncate">
+                                {secondarySpec.label}
+                            </span>
                         </span>
                     )}
                 </p>
                 {character.professions.length > 0 && (
-                    <p className="truncate text-xs text-ink/60">
-                        {character.professions.map((profession) => profession.label).join(' · ')}
+                    <p className="text-ink/60 truncate text-xs">
+                        {character.professions
+                            .map((profession) => profession.label)
+                            .join(' · ')}
                     </p>
                 )}
+                {primarySpec && (
+                    <EquipmentMiniature equipment={primarySpec.equipment} />
+                )}
             </div>
+
+            <button
+                type="button"
+                onClick={openExpanded}
+                title="Ver equipamento completo"
+                className="sortable-ignore text-ink/40 hover:text-ink shrink-0 self-start rounded p-1"
+            >
+                <svg
+                    viewBox="0 0 16 16"
+                    aria-hidden="true"
+                    className="h-4 w-4 fill-none stroke-current"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                >
+                    <path d="M6 2H2v4M10 2h4v4M6 14H2v-4M10 14h4v-4" />
+                </svg>
+            </button>
+
+            {expanded && (
+                <CharacterEquipmentModal
+                    character={character}
+                    slots={equipmentSlots}
+                    onClose={() => setExpanded(false)}
+                />
+            )}
         </Link>
     );
 }

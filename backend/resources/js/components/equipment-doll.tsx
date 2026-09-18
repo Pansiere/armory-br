@@ -6,6 +6,7 @@ import type {
     CharacterEquipment,
     EquipmentSlotOption,
     ItemSummary,
+    SocketedGem,
 } from '@/types/character';
 import { router } from '@inertiajs/react';
 import { useState } from 'react';
@@ -24,11 +25,18 @@ export default function EquipmentDoll({
     slots,
     activeSpecIndex,
     onSpecChange,
+    readOnly = false,
 }: {
     character: Character;
     slots: EquipmentSlotOption[];
     activeSpecIndex: number;
     onSpecChange: (index: number) => void;
+    /**
+     * Modo de exibição (ex.: modal do card na dashboard, issue #20) — sem
+     * clique pra trocar item/gema, sem botão de desequipar. A tooltip
+     * (hover/toque longo) continua funcionando normalmente.
+     */
+    readOnly?: boolean;
 }) {
     const [activeSlot, setActiveSlot] = useState<string | null>(null);
     const [activeGemSocket, setActiveGemSocket] = useState<{
@@ -83,9 +91,98 @@ export default function EquipmentDoll({
         );
     }
 
+    function renderItemLabel(item: ItemSummary) {
+        return (
+            <ItemTooltip itemId={item.id} qualityColor={item.quality_color}>
+                {item.icon_url && (
+                    <img
+                        src={item.icon_url}
+                        alt=""
+                        className="h-7 w-7 shrink-0 rounded-sm border"
+                        style={{ borderColor: item.quality_color }}
+                    />
+                )}
+                <span
+                    className="truncate"
+                    style={{ color: item.quality_color }}
+                >
+                    {item.name}
+                </span>
+            </ItemTooltip>
+        );
+    }
+
+    function renderGemBadge(item: SocketedGem['item']) {
+        return (
+            item.icon_url && (
+                <ItemTooltip itemId={item.id} qualityColor={item.quality_color}>
+                    <img
+                        src={item.icon_url}
+                        alt=""
+                        className="h-full w-full rounded-[1px]"
+                    />
+                </ItemTooltip>
+            )
+        );
+    }
+
     function renderSlot(slotOption: EquipmentSlotOption) {
         const equipment = equipped.get(slotOption.value);
         const item = equipment?.item;
+
+        if (readOnly) {
+            return (
+                <div key={slotOption.value} className="relative">
+                    <div
+                        className={cn(
+                            'bg-tavern-900 flex w-full items-center gap-2 rounded-md border-l-4 py-2 pr-3 pl-3 text-left text-sm',
+                            !item && 'border-tavern-700 border-dashed',
+                        )}
+                        style={
+                            item
+                                ? { borderLeftColor: item.quality_color }
+                                : undefined
+                        }
+                    >
+                        <span className="text-parchment-300 w-28 shrink-0 text-xs">
+                            {slotOption.label}
+                        </span>
+                        {item ? (
+                            renderItemLabel(item)
+                        ) : (
+                            <span className="text-parchment-300/50">Vazio</span>
+                        )}
+                    </div>
+
+                    {item && item.socket_colors.length > 0 && (
+                        <div className="mt-1 ml-3 flex gap-1">
+                            {item.socket_colors.map((socketColor, index) => {
+                                const position = index + 1;
+                                const gem = equipment?.gems.find(
+                                    (g) => g.socket_position === position,
+                                );
+
+                                return (
+                                    <div
+                                        key={position}
+                                        title={gem?.item.name}
+                                        className="flex h-5 w-5 items-center justify-center rounded-sm"
+                                        style={{
+                                            boxShadow: `0 0 0 1.5px ${GEM_COLOR_HEX[socketColor] ?? '#574632'}`,
+                                            backgroundColor: gem
+                                                ? undefined
+                                                : 'rgba(0,0,0,0.3)',
+                                        }}
+                                    >
+                                        {gem && renderGemBadge(gem.item)}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            );
+        }
 
         return (
             <div key={slotOption.value} className="relative">
@@ -112,25 +209,7 @@ export default function EquipmentDoll({
                         {slotOption.label}
                     </span>
                     {item ? (
-                        <ItemTooltip
-                            itemId={item.id}
-                            qualityColor={item.quality_color}
-                        >
-                            {item.icon_url && (
-                                <img
-                                    src={item.icon_url}
-                                    alt=""
-                                    className="h-7 w-7 shrink-0 rounded-sm border"
-                                    style={{ borderColor: item.quality_color }}
-                                />
-                            )}
-                            <span
-                                className="truncate"
-                                style={{ color: item.quality_color }}
-                            >
-                                {item.name}
-                            </span>
-                        </ItemTooltip>
+                        renderItemLabel(item)
                     ) : (
                         <span className="text-parchment-300/50">Vazio</span>
                     )}
@@ -191,20 +270,7 @@ export default function EquipmentDoll({
                                                 : 'rgba(0,0,0,0.3)',
                                         }}
                                     >
-                                        {gem?.item.icon_url && (
-                                            <ItemTooltip
-                                                itemId={gem.item.id}
-                                                qualityColor={
-                                                    gem.item.quality_color
-                                                }
-                                            >
-                                                <img
-                                                    src={gem.item.icon_url}
-                                                    alt=""
-                                                    className="h-full w-full rounded-[1px]"
-                                                />
-                                            </ItemTooltip>
-                                        )}
+                                        {gem && renderGemBadge(gem.item)}
                                     </button>
 
                                     {gem && !isActive && (
