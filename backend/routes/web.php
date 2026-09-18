@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\CharacterController;
 use App\Http\Controllers\CharacterEquipmentController;
+use App\Http\Controllers\CharacterRaidLockController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\PublicCharacterController;
 use App\Http\Controllers\Settings\AccountController;
@@ -42,6 +43,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('characters/{character}/equipment/{spec}/{slot}', [CharacterEquipmentController::class, 'destroy'])->name('characters.equipment.destroy');
     Route::put('characters/{character}/equipment/{spec}/{slot}/gems/{position}', [CharacterEquipmentController::class, 'updateGem'])->name('characters.equipment.gems.update');
     Route::delete('characters/{character}/equipment/{spec}/{slot}/gems/{position}', [CharacterEquipmentController::class, 'destroyGem'])->name('characters.equipment.gems.destroy');
+
+    Route::put('characters/{character}/raid-locks/{raid}/{size}', [CharacterRaidLockController::class, 'update'])->name('characters.raid-locks.update');
+    Route::delete('characters/{character}/raid-locks/{raid}/{size}', [CharacterRaidLockController::class, 'destroy'])->name('characters.raid-locks.destroy');
 
     Route::get('items/search', [ItemController::class, 'search'])->name('items.search');
 

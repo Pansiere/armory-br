@@ -5,6 +5,8 @@ namespace App\Http\Resources;
 use App\Models\Character;
 use App\Models\CharacterItem;
 use App\Models\CharacterItemGem;
+use App\Models\CharacterRaidLock;
+use App\Support\RaidResetSchedule;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -35,6 +37,19 @@ class CharacterResource extends JsonResource
             'is_public' => $this->is_public,
             'public_url' => $this->is_public ? route('characters.public', $this->public_token) : null,
             'average_item_level' => $this->whenLoaded('specs', fn () => $this->averageItemLevel()),
+            'raid_locks' => $this->whenLoaded('raidLocks', function () {
+                $nextReset = RaidResetSchedule::nextReset();
+
+                return $this->raidLocks
+                    ->filter(fn (CharacterRaidLock $lock) => $lock->isActive())
+                    ->values()
+                    ->map(fn (CharacterRaidLock $lock) => [
+                        'raid' => $lock->raid->value,
+                        'size' => $lock->size,
+                        'heroic' => $lock->heroic,
+                        'locked_until' => $nextReset->toIso8601String(),
+                    ]);
+            }),
             'professions' => $this->whenLoaded(
                 'professions',
                 fn () => $this->professions->map(fn ($profession) => [

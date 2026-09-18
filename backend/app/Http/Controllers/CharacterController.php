@@ -7,6 +7,7 @@ use App\Enums\EquipmentSlot;
 use App\Enums\Faction;
 use App\Enums\Profession;
 use App\Enums\Race;
+use App\Enums\Raid;
 use App\Enums\Spec;
 use App\Http\Resources\CharacterResource;
 use App\Models\Character;
@@ -30,7 +31,7 @@ class CharacterController extends Controller
     {
         $characters = $request->user()
             ->characters()
-            ->with(['specs.items.item', 'specs.items.gems.item', 'professions'])
+            ->with(['specs.items.item', 'specs.items.gems.item', 'professions', 'raidLocks'])
             ->orderBy('position')
             ->get()
             ->groupBy(fn (Character $character) => $character->faction->value);
@@ -39,6 +40,11 @@ class CharacterController extends Controller
             'alliance' => CharacterResource::collection($characters->get(Faction::Alliance->value, collect())),
             'horde' => CharacterResource::collection($characters->get(Faction::Horde->value, collect())),
             'equipmentSlots' => $this->equipmentSlotOptions(),
+            'raids' => collect(Raid::cases())->map(fn (Raid $raid) => [
+                'value' => $raid->value,
+                'label' => $raid->label(),
+                'shortLabel' => $raid->shortLabel(),
+            ]),
         ]);
     }
 

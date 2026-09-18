@@ -88,6 +88,19 @@ export type CharacterSpecData = {
     equipment: CharacterEquipment[];
 };
 
+export type RaidOption = {
+    value: string;
+    label: string;
+    shortLabel: string;
+};
+
+export type RaidLock = {
+    raid: string;
+    size: 10 | 25;
+    heroic: boolean;
+    locked_until: string;
+};
+
 export type Character = {
     id: number;
     name: string;
@@ -107,6 +120,7 @@ export type Character = {
     average_item_level: number | null;
     professions: CharacterProfession[];
     specs: CharacterSpecData[];
+    raid_locks: RaidLock[];
 };
 
 export type CharacterFormOptions = {

@@ -1,7 +1,11 @@
 import EmblemIcon from '@/components/emblem-icon';
 import FactionColumn from '@/components/faction-column';
 import AppLayout from '@/layouts/app-layout';
-import type { Character, EquipmentSlotOption } from '@/types/character';
+import type {
+    Character,
+    EquipmentSlotOption,
+    RaidOption,
+} from '@/types/character';
 import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import Sortable from 'sortablejs';
@@ -42,10 +46,12 @@ export default function Dashboard({
     alliance,
     horde,
     equipmentSlots,
+    raids,
 }: {
     alliance: Character[];
     horde: Character[];
     equipmentSlots: EquipmentSlotOption[];
+    raids: RaidOption[];
 }) {
     const [lists, setLists] = useState<Lists>({ alliance, horde });
     const allianceRef = useRef<HTMLDivElement>(null);
@@ -178,6 +184,7 @@ export default function Dashboard({
                         characters={lists.alliance}
                         listRef={allianceRef}
                         equipmentSlots={equipmentSlots}
+                        raids={raids}
                     />
                     <div className="bg-tavern-700 h-px md:hidden" />
                     <div className="bg-tavern-700 hidden w-px md:block" />
@@ -186,6 +193,7 @@ export default function Dashboard({
                         characters={lists.horde}
                         listRef={hordeRef}
                         equipmentSlots={equipmentSlots}
+                        raids={raids}
                     />
                 </div>
             )}

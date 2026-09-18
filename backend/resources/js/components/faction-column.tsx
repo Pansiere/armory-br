@@ -5,6 +5,7 @@ import type {
     Character,
     EquipmentSlotOption,
     Faction,
+    RaidOption,
 } from '@/types/character';
 import { Link } from '@inertiajs/react';
 import type { RefObject } from 'react';
@@ -34,11 +35,13 @@ export default function FactionColumn({
     characters,
     listRef,
     equipmentSlots,
+    raids,
 }: {
     faction: Faction;
     characters: Character[];
     listRef: RefObject<HTMLDivElement | null>;
     equipmentSlots: EquipmentSlotOption[];
+    raids: RaidOption[];
 }) {
     const meta = FACTION_META[faction];
 
@@ -80,6 +83,7 @@ export default function FactionColumn({
                         key={character.id}
                         character={character}
                         equipmentSlots={equipmentSlots}
+                        raids={raids}
                     />
                 ))}
 

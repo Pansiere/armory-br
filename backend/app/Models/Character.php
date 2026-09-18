@@ -59,6 +59,14 @@ class Character extends Model
     }
 
     /**
+     * @return HasMany<CharacterRaidLock, $this>
+     */
+    public function raidLocks(): HasMany
+    {
+        return $this->hasMany(CharacterRaidLock::class);
+    }
+
+    /**
      * As 1-2 specs do personagem (dual spec), ordenadas — posição 1 é a
      * spec primária.
      *

@@ -1,16 +1,23 @@
 import CharacterEquipmentModal from '@/components/character-equipment-modal';
+import CharacterRaidLocks from '@/components/character-raid-locks';
 import EquipmentMiniature from '@/components/equipment-miniature';
 import { cn } from '@/lib/utils';
-import type { Character, EquipmentSlotOption } from '@/types/character';
+import type {
+    Character,
+    EquipmentSlotOption,
+    RaidOption,
+} from '@/types/character';
 import { Link } from '@inertiajs/react';
 import { useState, type MouseEvent } from 'react';
 
 export default function CharacterCard({
     character,
     equipmentSlots,
+    raids,
 }: {
     character: Character;
     equipmentSlots: EquipmentSlotOption[];
+    raids: RaidOption[];
 }) {
     const [expanded, setExpanded] = useState(false);
 
@@ -144,6 +151,11 @@ export default function CharacterCard({
                         </span>
                     )}
                 </p>
+                <CharacterRaidLocks
+                    characterId={character.id}
+                    raids={raids}
+                    raidLocks={character.raid_locks}
+                />
                 {character.professions.length > 0 && (
                     <p className="text-ink/60 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
                         {character.professions.map((profession) => (
